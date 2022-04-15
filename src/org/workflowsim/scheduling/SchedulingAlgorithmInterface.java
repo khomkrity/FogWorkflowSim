@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,6 +15,10 @@
  */
 package org.workflowsim.scheduling;
 
+import org.cloudbus.cloudsim.Cloudlet;
+import org.cloudbus.cloudsim.Vm;
+import org.workflowsim.CondorVM;
+
 import java.util.List;
 
 /**
@@ -28,37 +32,34 @@ public interface SchedulingAlgorithmInterface {
 
     /**
      * Sets the job list.
-     * @param list
+     * @param list list of cloudlets
      */
-    public void setCloudletList(List list);
+    void setCloudletList(List<Cloudlet> list);
 
     /**
      * Sets the vm list.
-     * @param list
+     * @param list list of vms
      */
-    public void setVmList(List list);
+    void setVmList(List<CondorVM> list);
 
     /**
      * Gets the job list.
-     * @return 
      */
-    public List getCloudletList();
+    List<Cloudlet> getCloudletList();
 
     /**
      * Gets the vm list.
-     * @return 
      */
-    public List getVmList();
+    List<CondorVM> getVmList();
 
     /**
      * the main function.
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception scheduling error
      */
-    public void run() throws Exception;
+    void run() throws Exception;
 
     /**
      * Gets the scheduled jobs.
-     * @return 
      */
-    public List getScheduledList();
+    List<Cloudlet> getScheduledList();
 }

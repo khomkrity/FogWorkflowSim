@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.Vm;
+import org.workflowsim.CondorVM;
 
 /**
  * The base scheduler has implemented the basic features. Every other scheduling method
@@ -33,41 +34,41 @@ public abstract class BaseSchedulingAlgorithm implements SchedulingAlgorithmInte
     /**
      * the job list.
      */
-    private List<? extends Cloudlet> cloudletList;
+    private List<Cloudlet> cloudletList;
     /**
      * the vm list.
      */
-    private List<? extends Vm> vmList;
+    private List<CondorVM> vmList;
     /**
      * the scheduled job list.
      */
-    private List< Cloudlet> scheduledList;
+    private List<Cloudlet> scheduledList;
 
-    /**
+    /*
      * Initialize a BaseSchedulingAlgorithm
      */
     public BaseSchedulingAlgorithm() {
-        this.scheduledList = new ArrayList();
+        this.scheduledList = new ArrayList<>();
     }
 
     /**
      * Sets the job list.
      *
-     * @param list
+     * @param list list of cloudlets
      */
     @Override
-    public void setCloudletList(List list) {
+    public void setCloudletList(List<Cloudlet> list) {
         this.cloudletList = list;
     }
 
     /**
      * Sets the vm list
      *
-     * @param list
+     * @param list list of vms
      */
     @Override
-    public void setVmList(List list) {
-        this.vmList = new ArrayList(list);
+    public void setVmList(List<CondorVM> list) {
+        this.vmList = list;
     }
 
     /**
@@ -76,7 +77,7 @@ public abstract class BaseSchedulingAlgorithm implements SchedulingAlgorithmInte
      * @return the job list
      */
     @Override
-    public List getCloudletList() {
+    public List<Cloudlet> getCloudletList() {
         return this.cloudletList;
     }
 
@@ -86,13 +87,13 @@ public abstract class BaseSchedulingAlgorithm implements SchedulingAlgorithmInte
      * @return the vm list
      */
     @Override
-    public List getVmList() {
+    public List<CondorVM> getVmList() {
         return this.vmList;
     }
 
     /**
      * The main function
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception scheduling error
      */
     @Override
     public abstract void run() throws Exception;
@@ -103,7 +104,8 @@ public abstract class BaseSchedulingAlgorithm implements SchedulingAlgorithmInte
      * @return job list
      */
     @Override
-    public List getScheduledList() {
+    public List<Cloudlet> getScheduledList() {
         return this.scheduledList;
     }
+
 }

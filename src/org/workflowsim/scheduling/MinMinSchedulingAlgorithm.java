@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,31 +15,27 @@
  */
 package org.workflowsim.scheduling;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.plaf.basic.BasicScrollPaneUI.VSBChangeListener;
-
 import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.core.CloudSim;
 import org.workflowsim.CondorVM;
 import org.workflowsim.Job;
 import org.workflowsim.WorkflowSimTags;
 
-import sun.misc.VM;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MinMin algorithm.
  *
  * @author Weiwei Chen
- * @since WorkflowSim Toolkit 1.0
  * @date Apr 9, 2013
+ * @since WorkflowSim Toolkit 1.0
  */
 public class MinMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
 
     public MinMinSchedulingAlgorithm() {
         super();
     }
+
     private final List<Boolean> hasChecked = new ArrayList<>();
 
     @Override
@@ -51,12 +47,11 @@ public class MinMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
         for (int t = 0; t < size; t++) {
             hasChecked.add(false);
         }
-//        for (int i = 0; i < size; i++) 
-        while(!cloudlets.isEmpty()){
+        while (!cloudlets.isEmpty()) {
             int minIndex = 0;
             Cloudlet minCloudlet = null;
             for (int j = 0; j < size; j++) {
-                Cloudlet cloudlet = (Cloudlet) cloudlets.get(j);
+                Cloudlet cloudlet = cloudlets.get(j);
                 if (!hasChecked.get(j)) {
                     minCloudlet = cloudlet;
                     minIndex = j;
@@ -69,7 +64,7 @@ public class MinMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
 
 
             for (int j = 0; j < size; j++) {
-                Cloudlet cloudlet = (Cloudlet) cloudlets.get(j);
+                Cloudlet cloudlet = cloudlets.get(j);
                 if (hasChecked.get(j)) {
                     continue;
                 }
@@ -81,53 +76,42 @@ public class MinMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
             }
             hasChecked.set(minIndex, true);
 
-//            int vmSize = getVmList().size();
             Job job = (Job) minCloudlet;
             List<CondorVM> vlist = getVmList();
-            List<CondorVM> schedulableVmList = new ArrayList<CondorVM>();
-            if(job.getoffloading() == -1){
-            	schedulableVmList.addAll(vlist);
-//            	System.out.println("没有进行卸载决策");
-            }
-            else{
-            	for(CondorVM vm : vlist){
-                	if(job.getoffloading() == vm.getHost().getDatacenter().getId())
-                		schedulableVmList.add(vm);
+            List<CondorVM> schedulableVmList = new ArrayList<>();
+            if (job.getoffloading() == -1) {
+                schedulableVmList.addAll(vlist);
+            } else {
+                for (CondorVM vm : vlist) {
+                    if (job.getoffloading() == vm.getHost().getDatacenter().getId())
+                        schedulableVmList.add(vm);
                 }
-			}
-//            System.out.print("  job"+job.getCloudletId()+"卸载到"+CloudSim.getEntityName(job.getoffloading())+", 可调度的虚拟机有: ");
-//            for(CondorVM v2 : schedulableVmList)
-//            	System.out.print(v2.getId()+",");
+            }
             int vmSize = schedulableVmList.size();
-            CondorVM firstIdleVm = null;//(CondorVM)getVmList().get(0);
-            for (int j = 0; j < vmSize; j++) {
-                CondorVM vm = schedulableVmList.get(j);
+            CondorVM firstIdleVm = null;
+            for (CondorVM vm : schedulableVmList) {
                 if (vm.getState() == WorkflowSimTags.VM_STATUS_IDLE) {
                     firstIdleVm = vm;
                     break;
                 }
             }
             if (firstIdleVm == null) {
-//                break;
-            	CondorVM fast = schedulableVmList.get(0);
-            	for(CondorVM vm : schedulableVmList){
-            		if(vm.getMips() > fast.getMips())
-            			fast = vm;
-            	}
-            	firstIdleVm = fast;
-            }
-            else{
-            for (int j = 0; j < vmSize; j++) {
-                CondorVM vm = schedulableVmList.get(j);
-                if ((vm.getState() == WorkflowSimTags.VM_STATUS_IDLE)
-                        && vm.getCurrentRequestedTotalMips() > firstIdleVm.getCurrentRequestedTotalMips()) {
-                    firstIdleVm = vm;
+                CondorVM fast = schedulableVmList.get(0);
+                for (CondorVM vm : schedulableVmList) {
+                    if (vm.getMips() > fast.getMips())
+                        fast = vm;
                 }
-            }
+                firstIdleVm = fast;
+            } else {
+                for (CondorVM vm : schedulableVmList) {
+                    if ((vm.getState() == WorkflowSimTags.VM_STATUS_IDLE)
+                            && vm.getCurrentRequestedTotalMips() > firstIdleVm.getCurrentRequestedTotalMips()) {
+                        firstIdleVm = vm;
+                    }
+                }
             }
             firstIdleVm.setState(WorkflowSimTags.VM_STATUS_BUSY);
             minCloudlet.setVmId(firstIdleVm.getId());
-//            System.out.println("调度到vm"+firstIdleVm.getId());
             getScheduledList().add(minCloudlet);
             cloudlets.remove(minCloudlet);
             size = cloudlets.size();

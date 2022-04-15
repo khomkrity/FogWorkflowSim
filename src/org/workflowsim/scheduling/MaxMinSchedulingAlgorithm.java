@@ -1,12 +1,12 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
  * the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -15,19 +15,19 @@
  */
 package org.workflowsim.scheduling;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.cloudbus.cloudsim.Cloudlet;
-import org.cloudbus.cloudsim.Log;
 import org.workflowsim.CondorVM;
 import org.workflowsim.WorkflowSimTags;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MaxMin algorithm.
  *
  * @author Weiwei Chen
- * @since WorkflowSim Toolkit 1.0
  * @date Apr 9, 2013
+ * @since WorkflowSim Toolkit 1.0
  */
 public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
 
@@ -37,6 +37,7 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
     public MaxMinSchedulingAlgorithm() {
         super();
     }
+
     /**
      * the check point list.
      */
@@ -44,9 +45,6 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
 
     @Override
     public void run() {
-
-
-        //Log.printLine("Schedulin Cycle");
         int size = getCloudletList().size();
         hasChecked.clear();
         for (int t = 0; t < size; t++) {
@@ -56,7 +54,7 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
             int maxIndex = 0;
             Cloudlet maxCloudlet = null;
             for (int j = 0; j < size; j++) {
-                Cloudlet cloudlet = (Cloudlet) getCloudletList().get(j);
+                Cloudlet cloudlet = getCloudletList().get(j);
                 if (!hasChecked.get(j)) {
                     maxCloudlet = cloudlet;
                     maxIndex = j;
@@ -68,7 +66,7 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
             }
 
             for (int j = 0; j < size; j++) {
-                Cloudlet cloudlet = (Cloudlet) getCloudletList().get(j);
+                Cloudlet cloudlet = getCloudletList().get(j);
                 if (hasChecked.get(j)) {
                     continue;
                 }
@@ -81,9 +79,9 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
             hasChecked.set(maxIndex, true);
 
             int vmSize = getVmList().size();
-            CondorVM firstIdleVm = null;//(CondorVM)getVmList().get(0);
+            CondorVM firstIdleVm = null;
             for (int j = 0; j < vmSize; j++) {
-                CondorVM vm = (CondorVM) getVmList().get(j);
+                CondorVM vm = getVmList().get(j);
                 if (vm.getState() == WorkflowSimTags.VM_STATUS_IDLE) {
                     firstIdleVm = vm;
                     break;
@@ -93,20 +91,15 @@ public class MaxMinSchedulingAlgorithm extends BaseSchedulingAlgorithm {
                 break;
             }
             for (int j = 0; j < vmSize; j++) {
-                CondorVM vm = (CondorVM) getVmList().get(j);
+                CondorVM vm = getVmList().get(j);
                 if ((vm.getState() == WorkflowSimTags.VM_STATUS_IDLE)
                         && vm.getCurrentRequestedTotalMips() > firstIdleVm.getCurrentRequestedTotalMips()) {
                     firstIdleVm = vm;
-
                 }
             }
             firstIdleVm.setState(WorkflowSimTags.VM_STATUS_BUSY);
             maxCloudlet.setVmId(firstIdleVm.getId());
             getScheduledList().add(maxCloudlet);
-            Log.printLine("Schedules " + maxCloudlet.getCloudletId() + " with "
-                    + maxCloudlet.getCloudletLength() + " to VM " + firstIdleVm.getId()
-                    + " with " + firstIdleVm.getCurrentRequestedTotalMips());
-
         }
     }
 }

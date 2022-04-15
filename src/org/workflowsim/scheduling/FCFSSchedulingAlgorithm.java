@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,7 +15,6 @@
  */
 package org.workflowsim.scheduling;
 
-import java.util.Iterator;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.workflowsim.CondorVM;
 import org.workflowsim.WorkflowSimTags;
@@ -25,7 +24,7 @@ import org.workflowsim.WorkflowSimTags;
  *
  * @author Weiwei Chen
  * @since WorkflowSim Toolkit 1.0
- * @date Apr 9, 2013
+ * @since Apr 9, 2013
  */
 public class FCFSSchedulingAlgorithm extends BaseSchedulingAlgorithm {
 
@@ -35,17 +34,13 @@ public class FCFSSchedulingAlgorithm extends BaseSchedulingAlgorithm {
     @Override
     public void run() {
 
-        for (Iterator it = getCloudletList().iterator(); it.hasNext();) {
-            Cloudlet cloudlet = (Cloudlet) it.next();
+        for (Cloudlet cloudlet : getCloudletList()) {
             boolean stillHasVm = false;
-            for (Iterator itc = getVmList().iterator(); itc.hasNext();) {
-
-                CondorVM vm = (CondorVM) itc.next();
+            for (CondorVM vm : getVmList()) {
                 if (vm.getState() == WorkflowSimTags.VM_STATUS_IDLE) {
                     stillHasVm = true;
                     vm.setState(WorkflowSimTags.VM_STATUS_BUSY);
                     cloudlet.setVmId(vm.getId());
-                    System.out.println("vm"+vm.getId()+".mips: "+vm.getMips()+"  host: "+vm.getHost().getId());
                     getScheduledList().add(cloudlet);
                     break;
                 }
