@@ -21,23 +21,58 @@ import java.util.*;
 
 //TODO: add draw chart UI method
 public class SchedulingResult {
-    private final Workbook workbook;
+    private final Workbook WORKBOOK;
     private final Map<String, Map<String, List<Job>>> schedulingResults;
     private final List<CondorVM> virtualMachines;
     private final List<String> RESULT_HEADER_NAMES = new ArrayList<>(Arrays.asList("Job ID", "Task ID", "Status",
             "Datacenter ID", "VM ID", "Start Time", "Finish Time", "Execution Time", "Depth", "Parent", "Cost"));
     private final double PORT_DELAY = PortConstraint.getPortDelay();
-    private final CellStyle headerStyle;
-    private final CellStyle contentStyle;
+    private final CellStyle HEADER_STYLE;
+    private final CellStyle CONTENT_STYLE;
 
     public SchedulingResult(Map<String, Map<String, List<Job>>> schedulingResults, List<CondorVM> virtualMachines) {
         this.schedulingResults = schedulingResults;
         this.virtualMachines = virtualMachines;
-        workbook = new XSSFWorkbook();
-        XSSFFont headerFont = createFont(workbook, true);
-        XSSFFont contentFont = createFont(workbook, false);
-        headerStyle = createCellStyle(workbook, headerFont, true);
-        contentStyle = createCellStyle(workbook, contentFont, false);
+        WORKBOOK = new XSSFWorkbook();
+        XSSFFont headerFont = createFont(WORKBOOK, true);
+        XSSFFont contentFont = createFont(WORKBOOK, false);
+        HEADER_STYLE = createCellStyle(WORKBOOK, headerFont, true);
+        CONTENT_STYLE = createCellStyle(WORKBOOK, contentFont, false);
+    }
+
+    public void exportResult() throws IOException {
+        System.out.println("writing results to an excel file...");
+        Sheet inputSheet = WORKBOOK.createSheet("Environment Setting");
+        int totalWidth = 3;
+        int COLUMN_WIDTH = 3_500;
+        writeEnvironmentSetting(inputSheet, totalWidth, COLUMN_WIDTH);
+
+        for (Map.Entry<String, Map<String, List<Job>>> schedulingResult : schedulingResults.entrySet()) {
+            int startingRowIndex = 0;
+            String dagName = schedulingResult.getKey();
+            Map<String, List<Job>> algorithmResults = schedulingResult.getValue();
+            Sheet sheet = WORKBOOK.createSheet(dagName);
+            setColumnWidth(COLUMN_WIDTH, sheet, RESULT_HEADER_NAMES.size());
+
+            for (Map.Entry<String, List<Job>> algorithmResult : algorithmResults.entrySet()) {
+                String algorithmName = algorithmResult.getKey();
+                List<Job> jobs = algorithmResult.getValue();
+
+                Row algorithmNameRow = sheet.createRow(startingRowIndex);
+                writeAlgorithmName(algorithmName, algorithmNameRow);
+
+                Row resultHeaderRow = sheet.createRow(++startingRowIndex);
+                writeSchedulingHeader(resultHeaderRow);
+
+                for (int i = 0, currentRow = 1; currentRow <= jobs.size(); currentRow++, i++) {
+                    Row outputRow = sheet.createRow(startingRowIndex + currentRow);
+                    Job job = jobs.get(i);
+                    writeSchedulingResult(outputRow, job, CONTENT_STYLE);
+                }
+                startingRowIndex += jobs.size() + 2;
+            }
+        }
+        exportExcelFile();
     }
 
     private @NotNull XSSFFont createFont(Workbook workbook, boolean isHeaderStyle) {
@@ -67,7 +102,100 @@ public class SchedulingResult {
         return cellStyle;
     }
 
-    private void setResultIntoRow(@NotNull Row row, @NotNull Job job, CellStyle cellStyle) {
+    private void setColumnWidth(int columnWidth, @NotNull Sheet sheet, int numberOfColumn) {
+        for (int i = 0; i < numberOfColumn; i++) {
+            sheet.setColumnWidth(i, columnWidth);
+        }
+    }
+
+    private void writeEnvironmentSetting(@NotNull Sheet inputSheet, int totalWidth, int COLUMN_WIDTH) {
+        setColumnWidth(COLUMN_WIDTH, inputSheet, totalWidth);
+        Row inputConstraintRow = inputSheet.createRow(0);
+        Cell inputConstraintHeaderCell = inputConstraintRow.createCell(0);
+        inputConstraintHeaderCell.setCellValue("I/O Port Delay");
+        inputConstraintHeaderCell.setCellStyle(HEADER_STYLE);
+        Cell inputConstraintCell = inputConstraintRow.createCell(1);
+        inputConstraintCell.setCellValue(PORT_DELAY);
+        inputConstraintCell.setCellStyle(CONTENT_STYLE);
+
+        Row inputHeaderRow = inputSheet.createRow(1);
+        Cell hostCell = inputHeaderRow.createCell(0);
+        hostCell.setCellValue("Host");
+        hostCell.setCellStyle(HEADER_STYLE);
+        Cell vmIdCell = inputHeaderRow.createCell(1);
+        vmIdCell.setCellValue("VM ID");
+        vmIdCell.setCellStyle(HEADER_STYLE);
+        Cell specCell = inputHeaderRow.createCell(2);
+        specCell.setCellValue("Spec");
+        specCell.setCellStyle(HEADER_STYLE);
+        Cell specEmptyCell = inputHeaderRow.createCell(3);
+        specEmptyCell.setCellStyle(HEADER_STYLE);
+        CellRangeAddress specCellRangeAddress = new CellRangeAddress(inputHeaderRow.getRowNum(),
+                inputHeaderRow.getRowNum(), specCell.getColumnIndex(), specEmptyCell.getColumnIndex());
+        inputSheet.addMergedRegion(specCellRangeAddress);
+
+        for (int row = 2, i = 0; i < virtualMachines.size(); row += 2, i++) {
+            CondorVM virtualMachine = virtualMachines.get(i);
+            Row inputContentRow = inputSheet.createRow(row);
+            int nextRow = row + 1;
+            int firstColumn = 0, lastColumn = 0;
+
+            Cell inputHostCell = inputContentRow.createCell(0);
+            inputHostCell.setCellValue(virtualMachine.getHost().getDatacenter().getName());
+            inputHostCell.setCellStyle(CONTENT_STYLE);
+
+            Cell inputVmIdCell = inputContentRow.createCell(1);
+            inputVmIdCell.setCellValue(virtualMachine.getId());
+            inputVmIdCell.setCellStyle(CONTENT_STYLE);
+
+            Cell inputMipsHeaderCell = inputContentRow.createCell(2);
+            inputMipsHeaderCell.setCellValue("MIPS");
+            inputMipsHeaderCell.setCellStyle(HEADER_STYLE);
+
+            Cell inputMipsContentCell = inputContentRow.createCell(3);
+            inputMipsContentCell.setCellValue(virtualMachine.getMips());
+            inputMipsContentCell.setCellStyle(CONTENT_STYLE);
+
+            Row nextInputContentRow = inputSheet.createRow(nextRow);
+            Cell inputHostEmptyCell = nextInputContentRow.createCell(0);
+            inputHostEmptyCell.setCellStyle(CONTENT_STYLE);
+            Cell inputVmIdEmptyCell = nextInputContentRow.createCell(1);
+            inputVmIdEmptyCell.setCellStyle(CONTENT_STYLE);
+
+            Cell inputCostHeaderCell = nextInputContentRow.createCell(2);
+            inputCostHeaderCell.setCellValue("Cost Per MIPS");
+            inputCostHeaderCell.setCellStyle(HEADER_STYLE);
+
+            Cell inputCostContentCell = nextInputContentRow.createCell(3);
+            PowerHost powerHost = (PowerHost) virtualMachine.getHost();
+            inputCostContentCell.setCellValue(powerHost.getcostPerMips());
+            inputCostContentCell.setCellStyle(CONTENT_STYLE);
+
+            CellRangeAddress hostCellRangeAddress = new CellRangeAddress(row, nextRow, firstColumn, lastColumn);
+            CellRangeAddress vmCellRangeAddress = new CellRangeAddress(row, nextRow, firstColumn + 1, lastColumn + 1);
+            inputSheet.addMergedRegion(hostCellRangeAddress);
+            inputSheet.addMergedRegion(vmCellRangeAddress);
+        }
+    }
+
+    private void writeAlgorithmName(String algorithmName, @NotNull Row algorithmNameRow) {
+        Cell algorithmCell = algorithmNameRow.createCell(0);
+        algorithmCell.setCellValue("Algorithm");
+        algorithmCell.setCellStyle(HEADER_STYLE);
+        Cell algorithmNameCell = algorithmNameRow.createCell(1);
+        algorithmNameCell.setCellValue(algorithmName);
+        algorithmNameCell.setCellStyle(CONTENT_STYLE);
+    }
+
+    private void writeSchedulingHeader(@NotNull Row resultHeaderRow) {
+        for (int i = 0; i < RESULT_HEADER_NAMES.size(); i++) {
+            Cell headerCell = resultHeaderRow.createCell(i);
+            headerCell.setCellValue(RESULT_HEADER_NAMES.get(i));
+            headerCell.setCellStyle(HEADER_STYLE);
+        }
+    }
+
+    private void writeSchedulingResult(@NotNull Row row, @NotNull Job job, @NotNull CellStyle cellStyle) {
         int jobId = job.getCloudletId();
         int taskId = job.getTaskList().get(0).getCloudletId();
         int resourceId = job.getResourceId();
@@ -133,123 +261,6 @@ public class SchedulingResult {
         costCell.setCellStyle(cellStyle);
     }
 
-    // TODO: make environment setting dynamic (one host name can have many vmId)
-    // TODO: refactor
-    public void exportResult() throws IOException {
-        System.out.println("writing results to an excel file...");
-        Sheet inputSheet = workbook.createSheet("Environment Setting");
-        int totalWidth = 3;
-        int COLUMN_WIDTH = 3_500;
-        for (int i = 0; i < totalWidth; i++) {
-            inputSheet.setColumnWidth(i, COLUMN_WIDTH);
-        }
-        Row inputConstraintRow = inputSheet.createRow(0);
-        Cell inputConstraintHeaderCell = inputConstraintRow.createCell(0);
-        inputConstraintHeaderCell.setCellValue("I/O Port Delay");
-        inputConstraintHeaderCell.setCellStyle(headerStyle);
-        Cell inputConstraintCell = inputConstraintRow.createCell(1);
-        inputConstraintCell.setCellValue(PORT_DELAY);
-        inputConstraintCell.setCellStyle(contentStyle);
-
-        Row inputHeaderRow = inputSheet.createRow(1);
-        Cell hostCell = inputHeaderRow.createCell(0);
-        hostCell.setCellValue("Host");
-        hostCell.setCellStyle(headerStyle);
-        Cell vmIdCell = inputHeaderRow.createCell(1);
-        vmIdCell.setCellValue("VM ID");
-        vmIdCell.setCellStyle(headerStyle);
-        Cell specCell = inputHeaderRow.createCell(2);
-        specCell.setCellValue("Spec");
-        specCell.setCellStyle(headerStyle);
-        Cell specEmptyCell = inputHeaderRow.createCell(3);
-        specEmptyCell.setCellStyle(headerStyle);
-        CellRangeAddress specCellRangeAddress = new CellRangeAddress(inputHeaderRow.getRowNum(),
-                inputHeaderRow.getRowNum(), specCell.getColumnIndex(), specEmptyCell.getColumnIndex());
-        inputSheet.addMergedRegion(specCellRangeAddress);
-
-        for (int row = 2, i = 0; i < virtualMachines.size(); row += 2, i++) {
-            CondorVM virtualMachine = virtualMachines.get(i);
-            Row inputContentRow = inputSheet.createRow(row);
-            int nextRow = row + 1;
-            int firstColumn = 0, lastColumn = 0;
-
-            Cell inputHostCell = inputContentRow.createCell(0);
-            inputHostCell.setCellValue(virtualMachine.getHost().getDatacenter().getName());
-            inputHostCell.setCellStyle(contentStyle);
-
-            Cell inputVmIdCell = inputContentRow.createCell(1);
-            inputVmIdCell.setCellValue(virtualMachine.getId());
-            inputVmIdCell.setCellStyle(contentStyle);
-
-            Cell inputMipsHeaderCell = inputContentRow.createCell(2);
-            inputMipsHeaderCell.setCellValue("MIPS");
-            inputMipsHeaderCell.setCellStyle(headerStyle);
-
-            Cell inputMipsContentCell = inputContentRow.createCell(3);
-            inputMipsContentCell.setCellValue(virtualMachine.getMips());
-            inputMipsContentCell.setCellStyle(contentStyle);
-
-            Row nextInputContentRow = inputSheet.createRow(nextRow);
-            Cell inputHostEmptyCell = nextInputContentRow.createCell(0);
-            inputHostEmptyCell.setCellStyle(contentStyle);
-            Cell inputVmIdEmptyCell = nextInputContentRow.createCell(1);
-            inputVmIdEmptyCell.setCellStyle(contentStyle);
-
-            Cell inputCostHeaderCell = nextInputContentRow.createCell(2);
-            inputCostHeaderCell.setCellValue("Cost Per MIPS");
-            inputCostHeaderCell.setCellStyle(headerStyle);
-
-            Cell inputCostContentCell = nextInputContentRow.createCell(3);
-            PowerHost powerHost = (PowerHost) virtualMachine.getHost();
-            inputCostContentCell.setCellValue(powerHost.getcostPerMips());
-            inputCostContentCell.setCellStyle(contentStyle);
-
-            CellRangeAddress hostCellRangeAddress = new CellRangeAddress(row, nextRow, firstColumn, lastColumn);
-            CellRangeAddress vmCellRangeAddress = new CellRangeAddress(row, nextRow, firstColumn + 1, lastColumn + 1);
-            inputSheet.addMergedRegion(hostCellRangeAddress);
-            inputSheet.addMergedRegion(vmCellRangeAddress);
-        }
-
-        for (Map.Entry<String, Map<String, List<Job>>> schedulingResult : schedulingResults.entrySet()) {
-            int startingRowIndex = 0;
-            String dagName = schedulingResult.getKey();
-            Map<String, List<Job>> algorithmResults = schedulingResult.getValue();
-            Sheet sheet = workbook.createSheet(dagName);
-            for (int i = 0; i < RESULT_HEADER_NAMES.size(); i++) {
-                sheet.setColumnWidth(i, COLUMN_WIDTH);
-            }
-
-            for (Map.Entry<String, List<Job>> algorithmResult : algorithmResults.entrySet()) {
-                String algorithmName = algorithmResult.getKey();
-                List<Job> jobs = algorithmResult.getValue();
-
-                Row algorithmNameRow = sheet.createRow(startingRowIndex);
-                Cell algorithmCell = algorithmNameRow.createCell(0);
-                algorithmCell.setCellValue("Algorithm");
-                algorithmCell.setCellStyle(headerStyle);
-                Cell algorithmNameCell = algorithmNameRow.createCell(1);
-                algorithmNameCell.setCellValue(algorithmName);
-                algorithmNameCell.setCellStyle(contentStyle);
-
-                Row resultHeaderRow = sheet.createRow(++startingRowIndex);
-
-                for (int i = 0; i < RESULT_HEADER_NAMES.size(); i++) {
-                    Cell headerCell = resultHeaderRow.createCell(i);
-                    headerCell.setCellValue(RESULT_HEADER_NAMES.get(i));
-                    headerCell.setCellStyle(headerStyle);
-                }
-
-                for (int i = 0, currentRow = 1; currentRow <= jobs.size(); currentRow++, i++) {
-                    Row outputRow = sheet.createRow(startingRowIndex + currentRow);
-                    Job job = jobs.get(i);
-                    setResultIntoRow(outputRow, job, contentStyle);
-                }
-                startingRowIndex += jobs.size() + 2;
-            }
-        }
-        exportExcelFile();
-    }
-
     private void exportExcelFile() throws IOException {
         long currentTime = System.currentTimeMillis();
         String fileName = "result-" + currentTime + ".xlsx";
@@ -258,8 +269,8 @@ public class SchedulingResult {
 
         FileOutputStream outputStream = new FileOutputStream(fileAbsolutePath);
 
-        workbook.write(outputStream);
-        workbook.close();
+        WORKBOOK.write(outputStream);
+        WORKBOOK.close();
 
         System.out.println("complete export: " + file.getAbsolutePath());
     }
@@ -328,5 +339,4 @@ public class SchedulingResult {
         }
         formatter.close();
     }
-
 }
