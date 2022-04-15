@@ -10,6 +10,7 @@ import org.fog.entities.Controller;
 import org.fog.entities.FogBroker;
 import org.fog.entities.FogDevice;
 import org.fog.entities.FogDeviceCharacteristics;
+import org.fog.offloading.OffloadingStrategy;
 import org.fog.utils.FogLinearPowerModel;
 import org.fog.utils.FogUtils;
 import org.jetbrains.annotations.NotNull;
@@ -25,35 +26,29 @@ import java.io.IOException;
 import java.util.*;
 
 public class MainSchedulingEnvironment {
-
-    /**
-     * Input Area
-     */
-    private static Scanner scanner;
     private static final String INPUT_PATH = "config/dax/";
-    private static final List<String> algorithmNames;
+    private static final List<String> ALGORITHM_NAMES = new ArrayList<>(
+            Arrays.asList("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "STATIC"));
+    private static final List<Double[]> record = new ArrayList<>();
+    private static final Map<String, Map<String, List<Job>>> SCHEDULING_RESULTS = new HashMap<>();
+    private static final Map<String, List<Long>> HOST_MIPS = new HashMap<>();
+    private static final Map<String, List<Double>> HOST_COSTS = new HashMap<>();
+    private static final String OBJECTIVE = "Time";
+    private static final OffloadingStrategy OFFLOADING_STRATEGY = null;
+    private static final String WORKFLOW_PLANNER_NAME = "planner";
+    private static final int SCHEDULER_ID = 0;
+    private static final int NUMBER_OF_SCHEDULER = 1;
+    private static final int NUMBER_OF_FOG_PER_CLOUD = 1;
+    private static final int NUMBER_OF_MOBILE_PER_FOG = 1;
 
-    static {
-        algorithmNames = new ArrayList<>(
-                Arrays.asList("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "STATIC"));
-    }
-
+    private static Scanner scanner;
+    private static List<FogDevice> fogDevices;
+    private static List<CondorVM> virtualMachines;
     private static double portDelay;
     private static int numberOfCloud;
     private static int numberOfFog;
     private static int numberOfMobile;
-    private static final Map<String, List<Long>> hostMips = new HashMap<>();
-    private static final Map<String, List<Double>> hostCosts = new HashMap<>();
-    private static List<FogDevice> fogDevices;
-    private static List<CondorVM> virtualMachines;
-    private final static int numOfDept = 1;
-    private final static int numOfMobilesPerDept = 1;
 
-    private static final List<Double[]> record = new ArrayList<>();
-    private static final Map<String, Map<String, List<Job>>> schedulingResults = new HashMap<>();
-
-    // TODO: calculate transfer cost of each task's dependency for every algorithms
-    // to use
     public static void main(String[] args) {
         System.out.println("Starting the Simulation...");
         try {
@@ -63,11 +58,11 @@ public class MainSchedulingEnvironment {
             scanner.close();
             List<String> dagPaths = getDagPaths();
             for (String dagPath : dagPaths) {
-                for (String algorithmName : algorithmNames) {
+                for (String algorithmName : ALGORITHM_NAMES) {
                     startSimulation(dagPath, algorithmName);
                 }
             }
-            SchedulingResult schedulingResult = new SchedulingResult(schedulingResults, virtualMachines);
+            SchedulingResult schedulingResult = new SchedulingResult(SCHEDULING_RESULTS, virtualMachines);
             schedulingResult.printSchedulingResults();
             schedulingResult.exportResult();
 
@@ -130,8 +125,8 @@ public class MainSchedulingEnvironment {
             costs.add(inputCost);
             System.out.println();
         }
-        hostMips.put(hostName, mips);
-        hostCosts.put(hostName, costs);
+        HOST_MIPS.put(hostName, mips);
+        HOST_COSTS.put(hostName, costs);
     }
 
     private static @NotNull
@@ -150,13 +145,12 @@ public class MainSchedulingEnvironment {
         return dagPaths;
     }
 
-    private static String getDagName(String dagPath) {
+    private static String getDagName(@NotNull String dagPath) {
         String[] paths = dagPath.split("\\\\");
         return paths[paths.length - 1].split(".xml")[0];
     }
 
-    // TODO: extract methods
-    private static void startSimulation(String dagPath, String algorithmName) throws Exception {
+    private static void startSimulation(String dagPath, @NotNull String algorithmName) throws Exception {
         new PortConstraint(portDelay);
         int numUser = 1;
         Calendar calendar = Calendar.getInstance();
@@ -164,6 +158,10 @@ public class MainSchedulingEnvironment {
 
         fogDevices = new ArrayList<>();
         String appId = "workflow";
+        String dagName = getDagName(dagPath);
+
+        if (algorithmName.equals("STATIC")) algorithmName = "HEFT";
+
         createFogDevices();
 
         List<? extends Host> hosts = new ArrayList<>();
@@ -174,60 +172,23 @@ public class MainSchedulingEnvironment {
         }
 
         File dagFile = new File(dagPath);
-        if (!dagFile.exists()) {
-            throw new IOException("file does not exist");
-        }
+        if (!dagFile.exists()) throw new IOException("file does not exist");
 
-        String objective = "Time";
-        Parameters.SchedulingAlgorithm schedulingMethod = Parameters.SchedulingAlgorithm.valueOf(algorithmName);
-        Parameters.Optimization optimizationObjective = Parameters.Optimization.valueOf(objective);
-        Parameters.PlanningAlgorithm planningMethod = Parameters.PlanningAlgorithm.HEFT;
-        ReplicaCatalog.FileSystem fileSystem = ReplicaCatalog.FileSystem.SHARED;
-        OverheadParameters overheadParameters = new OverheadParameters(0, null, null, null, null, 0);
+        initializeSimulationParameters(dagPath, algorithmName, numberOfVirtualMachine);
+        initializeReplicaCatalog();
 
-		/*
-		  No Clustering
-		 */
-        ClusteringParameters.ClusteringMethod clusteringMethod = ClusteringParameters.ClusteringMethod.NONE;
-        int clusteringNumber = 0;
-        int clusteringSize = 0;
-        ClusteringParameters clusteringParameters = new ClusteringParameters(clusteringNumber, clusteringSize,
-                clusteringMethod, null);
-
-		/*
-		  Initialize static parameters
-		 */
-        Parameters.init(numberOfVirtualMachine, dagPath, null, null, overheadParameters, clusteringParameters,
-                schedulingMethod, optimizationObjective, planningMethod, null, 0);
-        ReplicaCatalog.init(fileSystem);
-
-        /*
-         * Create a WorkflowPlanner with one scheduler.
-         */
-        String workflowPlannerName = "planner";
-        int numberOfScheduler = 1;
-        WorkflowPlanner workflowPlanner = new WorkflowPlanner(workflowPlannerName, numberOfScheduler);
-
-        /*
-         * Create a WorkflowEngine.
-         */
+        WorkflowPlanner workflowPlanner = new WorkflowPlanner(WORKFLOW_PLANNER_NAME, NUMBER_OF_SCHEDULER);
         WorkflowEngine workflowEngine = workflowPlanner.getWorkflowEngine();
-        workflowEngine.getoffloadingEngine().setOffloadingStrategy(null);
-        int schedulerId = 0;
-        virtualMachines = createVM(workflowEngine.getSchedulerId(schedulerId), numberOfVirtualMachine, hosts);
-        workflowEngine.submitVmList(virtualMachines, schedulerId);
 
-        /*
-         * Binds the data centers with the scheduler.
-         */
+        workflowEngine.getoffloadingEngine().setOffloadingStrategy(OFFLOADING_STRATEGY);
+        virtualMachines = createVM(workflowEngine.getSchedulerId(SCHEDULER_ID), numberOfVirtualMachine, hosts);
+        workflowEngine.submitVmList(virtualMachines, SCHEDULER_ID);
+
         Controller controller = new Controller("master-controller", fogDevices, workflowEngine);
         for (FogDevice fogdevice : controller.getFogDevices()) {
-            workflowEngine.bindSchedulerDatacenter(fogdevice.getId(), schedulerId);
+            workflowEngine.bindSchedulerDatacenter(fogdevice.getId(), SCHEDULER_ID);
         }
 
-        String dagName = getDagName(dagPath);
-        if (algorithmName.equals("STATIC"))
-            algorithmName = planningMethod.toString();
         CloudSim.startSimulation();
         List<Job> scheduledJobs = workflowEngine.getJobsReceivedList();
         List<Integer> jobArrivalOrders = FogBroker.jobArrivalOrders;
@@ -241,11 +202,30 @@ public class MainSchedulingEnvironment {
         Log.enable();
     }
 
+    private static void initializeReplicaCatalog() {
+        ReplicaCatalog.FileSystem fileSystem = ReplicaCatalog.FileSystem.SHARED;
+        ReplicaCatalog.init(fileSystem);
+    }
+
+    private static void initializeSimulationParameters(String dagPath, String algorithmName, int numberOfVirtualMachine) {
+        Parameters.SchedulingAlgorithm schedulingMethod = Parameters.SchedulingAlgorithm.valueOf(algorithmName);
+        Parameters.Optimization optimizationObjective = Parameters.Optimization.valueOf(OBJECTIVE);
+        Parameters.PlanningAlgorithm planningMethod = Parameters.PlanningAlgorithm.HEFT;
+        OverheadParameters overheadParameters = new OverheadParameters(0, null, null, null, null, 0);
+        ClusteringParameters.ClusteringMethod clusteringMethod = ClusteringParameters.ClusteringMethod.NONE;
+        int clusteringSize = 0;
+        int clusteringNumber = 0;
+        ClusteringParameters clusteringParameters = new ClusteringParameters(clusteringNumber, clusteringSize,
+                clusteringMethod, null);
+        Parameters.init(numberOfVirtualMachine, dagPath, null, null, overheadParameters, clusteringParameters,
+                schedulingMethod, optimizationObjective, planningMethod, null, 0);
+    }
+
 
     private static void createFogDevices() throws Exception {
         String hostName = "cloud";
-        List<Long> mips = hostMips.get(hostName);
-        List<Double> costs = hostCosts.get(hostName);
+        List<Long> mips = HOST_MIPS.get(hostName);
+        List<Double> costs = HOST_COSTS.get(hostName);
         double mipsCostRate = 0.96;
         double memoryCostRate = 0.05;
         double storageCostRate = 0.1;
@@ -264,16 +244,16 @@ public class MainSchedulingEnvironment {
 
         fogDevices.add(cloud);
 
-        for (int i = 0; i < numOfDept; i++) {
-            addFogNode(i + "", fogDevices.get(0).getId());
+        for (int i = 0; i < NUMBER_OF_FOG_PER_CLOUD; i++) {
+            createFogNode(i + "", fogDevices.get(0).getId());
         }
 
     }
 
-    private static FogDevice createFogDevice(String hostName, int numberOfHost, List<Long> hostMips,
-                                             List<Double> hostCostsPerMips, int ram, long uplinkBandwidth, long downlinkBandwidth, int level,
-                                             double mipsCostRate, double busyPower, double idlePower, double memoryCostRate, double storageCostRate,
-                                             double bandwidthCostRate) throws Exception {
+    private static @NotNull FogDevice createFogDevice(String hostName, int numberOfHost, List<Long> hostMips,
+                                                      List<Double> hostCostsPerMips, int ram, long uplinkBandwidth, long downlinkBandwidth, int level,
+                                                      double mipsCostRate, double busyPower, double idlePower, double memoryCostRate, double storageCostRate,
+                                                      double bandwidthCostRate) throws Exception {
 
         List<Host> hosts = new ArrayList<>();
         LinkedList<Storage> storages = new LinkedList<>();
@@ -326,10 +306,10 @@ public class MainSchedulingEnvironment {
         return fogdevice;
     }
 
-    private static void addFogNode(String fogId, int parentId) throws Exception {
+    private static void createFogNode(String fogId, int parentId) throws Exception {
         String hostName = "fog";
-        List<Long> mips = hostMips.get(hostName);
-        List<Double> costs = hostCosts.get(hostName);
+        List<Long> mips = HOST_MIPS.get(hostName);
+        List<Double> costs = HOST_COSTS.get(hostName);
         double mipsCostRate = 0.48;
         double memoryCostRate = 0.05;
         double storageCostRate = 0.1;
@@ -350,10 +330,10 @@ public class MainSchedulingEnvironment {
         fogNode.setUplinkLatency(uplinkLatency);
 
         if (numberOfMobile > 0) {
-            for (int i = 0; i < numOfMobilesPerDept; i++) {
+            for (int i = 0; i < NUMBER_OF_MOBILE_PER_FOG; i++) {
                 String mobileId = fogId + "-" + i;
                 double mobileUplinkLatency = 2;
-                FogDevice mobile = addMobile(mobileId, fogNode.getId());
+                FogDevice mobile = createMobile(mobileId, fogNode.getId());
                 mobile.setUplinkLatency(mobileUplinkLatency);
                 fogDevices.add(mobile);
             }
@@ -361,10 +341,10 @@ public class MainSchedulingEnvironment {
 
     }
 
-    private static FogDevice addMobile(String id, int parentId) throws Exception {
+    private static @NotNull FogDevice createMobile(String id, int parentId) throws Exception {
         String hostName = "mobile";
-        List<Long> mips = hostMips.get(hostName);
-        List<Double> costs = hostCosts.get(hostName);
+        List<Long> mips = HOST_MIPS.get(hostName);
+        List<Double> costs = HOST_COSTS.get(hostName);
         double mipsCostRate = 0;
         double memoryCostRate = 0.05;
         double storageCostRate = 0.1;
@@ -383,7 +363,7 @@ public class MainSchedulingEnvironment {
         return mobile;
     }
 
-    private static List<CondorVM> createVM(int userId, int numberOfVirtualMachine, List<? extends Host> hosts) {
+    private static @NotNull List<CondorVM> createVM(int userId, int numberOfVirtualMachine, List<? extends Host> hosts) {
         LinkedList<CondorVM> virtualMachines = new LinkedList<>();
         CondorVM[] vm = new CondorVM[numberOfVirtualMachine];
         long imageSize = 10_000;
@@ -403,16 +383,16 @@ public class MainSchedulingEnvironment {
     }
 
     private static void setSchedulingResult(String dagName, String algorithmName, List<Job> jobs) {
-        if (schedulingResults.containsKey(dagName)) {
-            schedulingResults.get(dagName).put(algorithmName, jobs);
+        if (SCHEDULING_RESULTS.containsKey(dagName)) {
+            SCHEDULING_RESULTS.get(dagName).put(algorithmName, jobs);
         } else {
             Map<String, List<Job>> newSchedulingResult = new HashMap<>();
             newSchedulingResult.put(algorithmName, jobs);
-            schedulingResults.put(dagName, newSchedulingResult);
+            SCHEDULING_RESULTS.put(dagName, newSchedulingResult);
         }
     }
 
-    private static @NotNull List<Job> getOrderedJobs(List<Job> scheduledJobs, List<Integer> jobArrivalOrders) {
+    private static @NotNull List<Job> getOrderedJobs(List<Job> scheduledJobs, @NotNull List<Integer> jobArrivalOrders) {
         List<Job> orderedJobs = new ArrayList<>();
         for (int jobArrivalId : jobArrivalOrders) {
             for (Job job : scheduledJobs) {
@@ -478,7 +458,7 @@ public class MainSchedulingEnvironment {
         }
     }
 
-    private static int getDAGSize(String path) throws IOException {
+    private static int getDAGSize(@NotNull String path) throws IOException {
         StringBuilder fileSize = new StringBuilder();
         if (!path.isBlank()) {
             for (char character : path.toCharArray()) {
