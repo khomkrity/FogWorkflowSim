@@ -27,45 +27,49 @@ public class SchedulingResult {
     private final List<String> RESULT_HEADER_NAMES = new ArrayList<>(Arrays.asList("Job ID", "Task ID", "Status",
             "Datacenter ID", "VM ID", "Start Time", "Finish Time", "Execution Time", "Depth", "Parent", "Cost"));
     private final double PORT_DELAY = PortConstraint.getPortDelay();
+    private final XSSFFont CONTENT_FONT;
     private final CellStyle HEADER_STYLE;
     private final CellStyle CONTENT_STYLE;
+
+    enum Style {
+        HEADER, CONTENT, PORT_CONSTRAINT_ON, PORT_CONSTRAINT_OFF
+    }
 
     public SchedulingResult(Map<String, Map<String, List<Job>>> schedulingResults, List<CondorVM> virtualMachines) {
         this.schedulingResults = schedulingResults;
         this.virtualMachines = virtualMachines;
         WORKBOOK = new XSSFWorkbook();
-        XSSFFont headerFont = createFont(WORKBOOK, true);
-        XSSFFont contentFont = createFont(WORKBOOK, false);
-        HEADER_STYLE = createCellStyle(WORKBOOK, headerFont, true);
-        CONTENT_STYLE = createCellStyle(WORKBOOK, contentFont, false);
+        XSSFFont HEADER_FONT = createFont(Style.HEADER);
+        CONTENT_FONT = createFont(Style.CONTENT);
+        HEADER_STYLE = createCellStyle(HEADER_FONT, Style.HEADER);
+        CONTENT_STYLE = createCellStyle(CONTENT_FONT, Style.CONTENT);
     }
 
     public void exportResult() throws IOException {
         System.out.println("writing results to an excel file...");
-        Sheet inputSheet = WORKBOOK.createSheet("Environment Setting");
+        Sheet environmentSettingSheet = WORKBOOK.createSheet("Environment Setting");
         int totalWidth = 3;
-        int COLUMN_WIDTH = 3_500;
-        writeEnvironmentSetting(inputSheet, totalWidth, COLUMN_WIDTH);
-
+        int columnWidth = 3_500;
+        writeEnvironmentSetting(environmentSettingSheet, totalWidth, columnWidth);
         for (Map.Entry<String, Map<String, List<Job>>> schedulingResult : schedulingResults.entrySet()) {
             int startingRowIndex = 0;
             String dagName = schedulingResult.getKey();
             Map<String, List<Job>> algorithmResults = schedulingResult.getValue();
-            Sheet sheet = WORKBOOK.createSheet(dagName);
-            setColumnWidth(COLUMN_WIDTH, sheet, RESULT_HEADER_NAMES.size());
+            Sheet schedulingResultSheet = WORKBOOK.createSheet(dagName);
+            setColumnWidth(columnWidth, schedulingResultSheet, RESULT_HEADER_NAMES.size());
 
             for (Map.Entry<String, List<Job>> algorithmResult : algorithmResults.entrySet()) {
                 String algorithmName = algorithmResult.getKey();
                 List<Job> jobs = algorithmResult.getValue();
 
-                Row algorithmNameRow = sheet.createRow(startingRowIndex);
+                Row algorithmNameRow = schedulingResultSheet.createRow(startingRowIndex);
                 writeAlgorithmName(algorithmName, algorithmNameRow);
 
-                Row resultHeaderRow = sheet.createRow(++startingRowIndex);
+                Row resultHeaderRow = schedulingResultSheet.createRow(++startingRowIndex);
                 writeSchedulingHeader(resultHeaderRow);
 
                 for (int i = 0, currentRow = 1; currentRow <= jobs.size(); currentRow++, i++) {
-                    Row outputRow = sheet.createRow(startingRowIndex + currentRow);
+                    Row outputRow = schedulingResultSheet.createRow(startingRowIndex + currentRow);
                     Job job = jobs.get(i);
                     writeSchedulingResult(outputRow, job, CONTENT_STYLE);
                 }
@@ -75,31 +79,54 @@ public class SchedulingResult {
         exportExcelFile();
     }
 
-    private @NotNull XSSFFont createFont(Workbook workbook, boolean isHeaderStyle) {
-        XSSFFont font = ((XSSFWorkbook) workbook).createFont();
+    private @NotNull XSSFFont createFont(@NotNull Style style) {
+        XSSFFont font = ((XSSFWorkbook) WORKBOOK).createFont();
         font.setFontName("IBM Plex Sans Condensed");
-        if (isHeaderStyle)
+        if (style.equals(Style.HEADER))
             font.setBold(true);
         return font;
     }
 
-    private @NotNull CellStyle createCellStyle(@NotNull Workbook workbook, XSSFFont font, boolean isHeaderStyle) {
-        CellStyle cellStyle = workbook.createCellStyle();
-
+    private @NotNull CellStyle createCellStyle(XSSFFont font, Style style) {
+        CellStyle cellStyle = WORKBOOK.createCellStyle();
         cellStyle.setWrapText(true);
         cellStyle.setFont(font);
-        if (isHeaderStyle) {
-            cellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-            cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        setCellFillColor(style, cellStyle);
+        setCellAlignment(cellStyle);
+        setCellBorder(cellStyle);
+        return cellStyle;
+    }
+
+    private void setCellFillColor(@NotNull Style style, CellStyle cellStyle) {
+        switch (style) {
+            case HEADER -> {
+                cellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+                cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            }
+            case CONTENT -> {
+            }
+            case PORT_CONSTRAINT_ON -> {
+                cellStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+                cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            }
+            case PORT_CONSTRAINT_OFF -> {
+                cellStyle.setFillForegroundColor(IndexedColors.RED.getIndex());
+                cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + style);
         }
-        cellStyle.setAlignment(HorizontalAlignment.CENTER);
-        cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+    }
+
+    private void setCellBorder(@NotNull CellStyle cellStyle) {
         cellStyle.setBorderTop(BorderStyle.THIN);
         cellStyle.setBorderRight(BorderStyle.THIN);
         cellStyle.setBorderBottom(BorderStyle.THIN);
         cellStyle.setBorderLeft(BorderStyle.THIN);
+    }
 
-        return cellStyle;
+    private void setCellAlignment(@NotNull CellStyle cellStyle) {
+        cellStyle.setAlignment(HorizontalAlignment.CENTER);
+        cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
     }
 
     private void setColumnWidth(int columnWidth, @NotNull Sheet sheet, int numberOfColumn) {
@@ -108,31 +135,12 @@ public class SchedulingResult {
         }
     }
 
-    private void writeEnvironmentSetting(@NotNull Sheet inputSheet, int totalWidth, int COLUMN_WIDTH) {
-        setColumnWidth(COLUMN_WIDTH, inputSheet, totalWidth);
-        Row inputConstraintRow = inputSheet.createRow(0);
-        Cell inputConstraintHeaderCell = inputConstraintRow.createCell(0);
-        inputConstraintHeaderCell.setCellValue("I/O Port Delay");
-        inputConstraintHeaderCell.setCellStyle(HEADER_STYLE);
-        Cell inputConstraintCell = inputConstraintRow.createCell(1);
-        inputConstraintCell.setCellValue(PORT_DELAY);
-        inputConstraintCell.setCellStyle(CONTENT_STYLE);
-
-        Row inputHeaderRow = inputSheet.createRow(1);
-        Cell hostCell = inputHeaderRow.createCell(0);
-        hostCell.setCellValue("Host");
-        hostCell.setCellStyle(HEADER_STYLE);
-        Cell vmIdCell = inputHeaderRow.createCell(1);
-        vmIdCell.setCellValue("VM ID");
-        vmIdCell.setCellStyle(HEADER_STYLE);
-        Cell specCell = inputHeaderRow.createCell(2);
-        specCell.setCellValue("Spec");
-        specCell.setCellStyle(HEADER_STYLE);
-        Cell specEmptyCell = inputHeaderRow.createCell(3);
-        specEmptyCell.setCellStyle(HEADER_STYLE);
-        CellRangeAddress specCellRangeAddress = new CellRangeAddress(inputHeaderRow.getRowNum(),
-                inputHeaderRow.getRowNum(), specCell.getColumnIndex(), specEmptyCell.getColumnIndex());
-        inputSheet.addMergedRegion(specCellRangeAddress);
+    private void writeEnvironmentSetting(@NotNull Sheet inputSheet, int totalWidth, int columnWidth) {
+        setColumnWidth(columnWidth, inputSheet, totalWidth);
+        int inputConstraintRowIndex = 0;
+        int inputHeaderRowIndex = 1;
+        writePortConstraint(inputSheet, inputConstraintRowIndex);
+        writeInputHeader(inputSheet, inputHeaderRowIndex);
 
         for (int row = 2, i = 0; i < virtualMachines.size(); row += 2, i++) {
             CondorVM virtualMachine = virtualMachines.get(i);
@@ -176,6 +184,35 @@ public class SchedulingResult {
             inputSheet.addMergedRegion(hostCellRangeAddress);
             inputSheet.addMergedRegion(vmCellRangeAddress);
         }
+    }
+
+    private void writeInputHeader(@NotNull Sheet inputSheet, int inputHeaderRowIndex) {
+        Row inputHeaderRow = inputSheet.createRow(inputHeaderRowIndex);
+        Cell hostCell = inputHeaderRow.createCell(0);
+        hostCell.setCellValue("Host");
+        hostCell.setCellStyle(HEADER_STYLE);
+        Cell vmIdCell = inputHeaderRow.createCell(1);
+        vmIdCell.setCellValue("VM ID");
+        vmIdCell.setCellStyle(HEADER_STYLE);
+        Cell specCell = inputHeaderRow.createCell(2);
+        specCell.setCellValue("Spec");
+        specCell.setCellStyle(HEADER_STYLE);
+        Cell specEmptyCell = inputHeaderRow.createCell(3);
+        specEmptyCell.setCellStyle(HEADER_STYLE);
+        CellRangeAddress specCellRangeAddress = new CellRangeAddress(inputHeaderRow.getRowNum(),
+                inputHeaderRow.getRowNum(), specCell.getColumnIndex(), specEmptyCell.getColumnIndex());
+        inputSheet.addMergedRegion(specCellRangeAddress);
+    }
+
+    private void writePortConstraint(@NotNull Sheet inputSheet, int inputConstraintRowIndex) {
+        Row inputConstraintRow = inputSheet.createRow(inputConstraintRowIndex);
+        Cell inputConstraintHeaderCell = inputConstraintRow.createCell(0);
+        inputConstraintHeaderCell.setCellValue("I/O Port Delay");
+        inputConstraintHeaderCell.setCellStyle(HEADER_STYLE);
+        Cell inputConstraintCell = inputConstraintRow.createCell(1);
+        inputConstraintCell.setCellValue(PORT_DELAY);
+        Style portConstraintStyle = PortConstraint.hasPortDelay() ? Style.PORT_CONSTRAINT_ON : Style.PORT_CONSTRAINT_OFF;
+        inputConstraintCell.setCellStyle(createCellStyle(CONTENT_FONT, portConstraintStyle));
     }
 
     private void writeAlgorithmName(String algorithmName, @NotNull Row algorithmNameRow) {
@@ -266,13 +303,9 @@ public class SchedulingResult {
         String fileName = "result-" + currentTime + ".xlsx";
         File file = new File("results/scheduling-results/" + fileName);
         String fileAbsolutePath = file.getAbsolutePath();
-
         FileOutputStream outputStream = new FileOutputStream(fileAbsolutePath);
-
         WORKBOOK.write(outputStream);
         WORKBOOK.close();
-
-        System.out.println("complete export: " + file.getAbsolutePath());
     }
 
     public void printSchedulingResults() {
