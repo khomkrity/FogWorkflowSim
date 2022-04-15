@@ -19,14 +19,13 @@ import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.core.SimEvent;
 import org.fog.entities.FogDevice;
 
-
-/** 
- * 处理vm请求
- * Datacenter class is a CloudResource whose hostList are virtualized. It deals with processing of
- * VM queries (i.e., handling of VMs) instead of processing Cloudlet-related queries. So, even
- * though an AllocPolicy will be instantiated (in the init() method of the superclass, it will not
- * be used, as processing of cloudlets are handled by the CloudletScheduler and processing of
- * VirtualMachines are handled by the VmAllocationPolicy.
+/**
+ * 处理vm请求 Datacenter class is a CloudResource whose hostList are virtualized. It
+ * deals with processing of VM queries (i.e., handling of VMs) instead of
+ * processing Cloudlet-related queries. So, even though an AllocPolicy will be
+ * instantiated (in the init() method of the superclass, it will not be used, as
+ * processing of cloudlets are handled by the CloudletScheduler and processing
+ * of VirtualMachines are handled by the VmAllocationPolicy.
  * 
  * @author Rodrigo N. Calheiros
  * @author Anton Beloglazov
@@ -34,13 +33,13 @@ import org.fog.entities.FogDevice;
  */
 public class Datacenter extends SimEntity {
 
-	/** The characteristics. 查找主机，主机状态数量和pe状态数量等信息*/
+	/** The characteristics. 查找主机，主机状态数量和pe状态数量等信息 */
 	private DatacenterCharacteristics characteristics;
 
 	/** The regional cis name. */
 	private String regionalCisName;
 
-	/** The vm provisioner. vm分配策略*/
+	/** The vm provisioner. vm分配策略 */
 	private VmAllocationPolicy vmAllocationPolicy;
 
 	/** The last process time. */
@@ -52,35 +51,35 @@ public class Datacenter extends SimEntity {
 	/** The vm list. */
 	private List<? extends Vm> vmList;
 
-	/** The scheduling interval. 调度事件间隔  */
+	/** The scheduling interval. 调度事件间隔 */
 	private double schedulingInterval;
 
 	/**
 	 * Allocates a new PowerDatacenter object.
 	 * 
-	 * @param name the name to be associated with this entity (as required by Sim_entity class from
-	 *            simjava package)
-	 * @param characteristics an object of DatacenterCharacteristics
-	 * @param storageList a LinkedList of storage elements, for data simulation
+	 * @param name               the name to be associated with this entity (as
+	 *                           required by Sim_entity class from simjava package)
+	 * @param characteristics    an object of DatacenterCharacteristics
+	 * @param storageList        a LinkedList of storage elements, for data
+	 *                           simulation
 	 * @param vmAllocationPolicy the vmAllocationPolicy
 	 * @throws Exception This happens when one of the following scenarios occur:
-	 *             <ul>
-	 *             <li>creating this entity before initializing CloudSim package
-	 *             <li>this entity name is <tt>null</tt> or empty
-	 *             <li>this entity has <tt>zero</tt> number of PEs (Processing Elements). <br>
-	 *             No PEs mean the Cloudlets can't be processed. A CloudResource must contain one or
-	 *             more Machines. A Machine must contain one or more PEs.
-	 *             </ul>
+	 *                   <ul>
+	 *                   <li>creating this entity before initializing CloudSim
+	 *                   package
+	 *                   <li>this entity name is <tt>null</tt> or empty
+	 *                   <li>this entity has <tt>zero</tt> number of PEs (Processing
+	 *                   Elements). <br>
+	 *                   No PEs mean the Cloudlets can't be processed. A
+	 *                   CloudResource must contain one or more Machines. A Machine
+	 *                   must contain one or more PEs.
+	 *                   </ul>
 	 * @pre name != null
 	 * @pre resource != null
 	 * @post $none
 	 */
-	public Datacenter(
-			String name,
-			DatacenterCharacteristics characteristics,
-			VmAllocationPolicy vmAllocationPolicy,
-			List<Storage> storageList,
-			double schedulingInterval) throws Exception {
+	public Datacenter(String name, DatacenterCharacteristics characteristics, VmAllocationPolicy vmAllocationPolicy,
+			List<Storage> storageList, double schedulingInterval) throws Exception {
 		super(name);
 		setCharacteristics(characteristics);
 		setVmAllocationPolicy(vmAllocationPolicy);
@@ -88,15 +87,15 @@ public class Datacenter extends SimEntity {
 		setStorageList(storageList);
 		setVmList(new ArrayList<Vm>());
 		setSchedulingInterval(schedulingInterval);
-		
+
 		for (Host host : getCharacteristics().getHostList()) {
 			host.setDatacenter(this);
 		}
 
 		// If this resource doesn't have any PEs then no useful at all
 		if (getCharacteristics().getNumberOfPes() == 0) {
-			throw new Exception(super.getName()
-					+ " : Error - this entity has no PEs. Therefore, can't process any Cloudlets.");
+			throw new Exception(
+					super.getName() + " : Error - this entity has no PEs. Therefore, can't process any Cloudlets.");
 		}
 
 		// stores id of this class
@@ -105,7 +104,8 @@ public class Datacenter extends SimEntity {
 
 	/**
 	 * Overrides this method when making a new and different type of resource. <br>
-	 * <b>NOTE:</b> You do not need to override {@link #body()} method, if you use this method.
+	 * <b>NOTE:</b> You do not need to override {@link #body()} method, if you use
+	 * this method.
 	 * 
 	 * @pre $none
 	 * @post $none
@@ -115,8 +115,8 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 处理实体发送过来的是事件，返回他们询问的信息或者做某些操作
-	 * Processes events or services that are available for this PowerDatacenter.
+	 * 处理实体发送过来的是事件，返回他们询问的信息或者做某些操作 Processes events or services that are available
+	 * for this PowerDatacenter.
 	 * 
 	 * @param ev a Sim_event object
 	 * @pre ev != null
@@ -127,152 +127,152 @@ public class Datacenter extends SimEntity {
 		int srcId = -1;
 		switch (ev.getTag()) {
 		// Resource characteristics inquiry
-			case CloudSimTags.RESOURCE_CHARACTERISTICS:
-				srcId = ((Integer) ev.getData()).intValue();
-				sendNow(srcId, ev.getTag(), getCharacteristics());
-				break;
+		case CloudSimTags.RESOURCE_CHARACTERISTICS:
+			srcId = ((Integer) ev.getData()).intValue();
+			sendNow(srcId, ev.getTag(), getCharacteristics());
+			break;
 
-			// Resource dynamic info inquiry
-			case CloudSimTags.RESOURCE_DYNAMICS:
-				srcId = ((Integer) ev.getData()).intValue();
-				sendNow(srcId, ev.getTag(), 0);
-				break;
+		// Resource dynamic info inquiry
+		case CloudSimTags.RESOURCE_DYNAMICS:
+			srcId = ((Integer) ev.getData()).intValue();
+			sendNow(srcId, ev.getTag(), 0);
+			break;
 
-			case CloudSimTags.RESOURCE_NUM_PE:
-				srcId = ((Integer) ev.getData()).intValue();
-				int numPE = getCharacteristics().getNumberOfPes();
-				sendNow(srcId, ev.getTag(), numPE);
-				break;
+		case CloudSimTags.RESOURCE_NUM_PE:
+			srcId = ((Integer) ev.getData()).intValue();
+			int numPE = getCharacteristics().getNumberOfPes();
+			sendNow(srcId, ev.getTag(), numPE);
+			break;
 
-			case CloudSimTags.RESOURCE_NUM_FREE_PE:
-				srcId = ((Integer) ev.getData()).intValue();
-				int freePesNumber = getCharacteristics().getNumberOfFreePes();
-				System.out.println("freePesNumber datacenter:"+freePesNumber);
-				sendNow(srcId, ev.getTag(), freePesNumber);
-				break;
+		case CloudSimTags.RESOURCE_NUM_FREE_PE:
+			srcId = ((Integer) ev.getData()).intValue();
+			int freePesNumber = getCharacteristics().getNumberOfFreePes();
+			System.out.println("freePesNumber datacenter:" + freePesNumber);
+			sendNow(srcId, ev.getTag(), freePesNumber);
+			break;
 
-			// New Cloudlet arrives 处理cloudlet提交事件,不需要回复确认
-			case CloudSimTags.CLOUDLET_SUBMIT:
-				processCloudletSubmit(ev, false);
-				break;
-			case CloudSimTags.CLEAR:
-				clearVmProcessing(ev);
-				break;
-			case CloudSimTags.CLEARCONSUMPTION:
-				clearConsumption(ev);
-				break;
+		// New Cloudlet arrives 处理cloudlet提交事件,不需要回复确认
+		case CloudSimTags.CLOUDLET_SUBMIT:
+			processCloudletSubmit(ev, false);
+			break;
+		case CloudSimTags.CLEAR:
+			clearVmProcessing(ev);
+			break;
+		case CloudSimTags.CLEARCONSUMPTION:
+			clearConsumption(ev);
+			break;
 
-			// New Cloudlet arrives, but the sender asks for an ack 处理cloudlet提交事件，需要回复确认
-			case CloudSimTags.CLOUDLET_SUBMIT_ACK:
-				processCloudletSubmit(ev, true);
-				break;
+		// New Cloudlet arrives, but the sender asks for an ack 处理cloudlet提交事件，需要回复确认
+		case CloudSimTags.CLOUDLET_SUBMIT_ACK:
+			processCloudletSubmit(ev, true);
+			break;
 
-			// Cancels a previously submitted Cloudlet 取消事件
-			case CloudSimTags.CLOUDLET_CANCEL:
-				processCloudlet(ev, CloudSimTags.CLOUDLET_CANCEL);
-				break;
+		// Cancels a previously submitted Cloudlet 取消事件
+		case CloudSimTags.CLOUDLET_CANCEL:
+			processCloudlet(ev, CloudSimTags.CLOUDLET_CANCEL);
+			break;
 
-			// Pauses a previously submitted Cloudlet 暂停
-			case CloudSimTags.CLOUDLET_PAUSE:
-				processCloudlet(ev, CloudSimTags.CLOUDLET_PAUSE);
-				break;
+		// Pauses a previously submitted Cloudlet 暂停
+		case CloudSimTags.CLOUDLET_PAUSE:
+			processCloudlet(ev, CloudSimTags.CLOUDLET_PAUSE);
+			break;
 
-			// Pauses a previously submitted Cloudlet, but the sender
-			// asks for an acknowledgement
-			case CloudSimTags.CLOUDLET_PAUSE_ACK:
-				processCloudlet(ev, CloudSimTags.CLOUDLET_PAUSE_ACK);
-				break;
+		// Pauses a previously submitted Cloudlet, but the sender
+		// asks for an acknowledgement
+		case CloudSimTags.CLOUDLET_PAUSE_ACK:
+			processCloudlet(ev, CloudSimTags.CLOUDLET_PAUSE_ACK);
+			break;
 
-			// Resumes a previously submitted Cloudlet  恢复
-			case CloudSimTags.CLOUDLET_RESUME:
-				processCloudlet(ev, CloudSimTags.CLOUDLET_RESUME);
-				break;
+		// Resumes a previously submitted Cloudlet 恢复
+		case CloudSimTags.CLOUDLET_RESUME:
+			processCloudlet(ev, CloudSimTags.CLOUDLET_RESUME);
+			break;
 
-			// Resumes a previously submitted Cloudlet, but the sender
-			// asks for an acknowledgement
-			case CloudSimTags.CLOUDLET_RESUME_ACK:
-				processCloudlet(ev, CloudSimTags.CLOUDLET_RESUME_ACK);
-				break;
+		// Resumes a previously submitted Cloudlet, but the sender
+		// asks for an acknowledgement
+		case CloudSimTags.CLOUDLET_RESUME_ACK:
+			processCloudlet(ev, CloudSimTags.CLOUDLET_RESUME_ACK);
+			break;
 
-			// Moves a previously submitted Cloudlet to a different resource  移交到另一个资源的vm上
-			case CloudSimTags.CLOUDLET_MOVE:
-				processCloudletMove((int[]) ev.getData(), CloudSimTags.CLOUDLET_MOVE);
-				break;
+		// Moves a previously submitted Cloudlet to a different resource 移交到另一个资源的vm上
+		case CloudSimTags.CLOUDLET_MOVE:
+			processCloudletMove((int[]) ev.getData(), CloudSimTags.CLOUDLET_MOVE);
+			break;
 
-			// Moves a previously submitted Cloudlet to a different resource
-			case CloudSimTags.CLOUDLET_MOVE_ACK:
-				processCloudletMove((int[]) ev.getData(), CloudSimTags.CLOUDLET_MOVE_ACK);
-				break;
+		// Moves a previously submitted Cloudlet to a different resource
+		case CloudSimTags.CLOUDLET_MOVE_ACK:
+			processCloudletMove((int[]) ev.getData(), CloudSimTags.CLOUDLET_MOVE_ACK);
+			break;
 
-			// Checks the status of a Cloudlet  查看cloudlet的状态
-			case CloudSimTags.CLOUDLET_STATUS:
-				processCloudletStatus(ev);
-				break;
+		// Checks the status of a Cloudlet 查看cloudlet的状态
+		case CloudSimTags.CLOUDLET_STATUS:
+			processCloudletStatus(ev);
+			break;
 
-			// Ping packet     ping请求
-			case CloudSimTags.INFOPKT_SUBMIT:
-				processPingRequest(ev);
-				break;
+		// Ping packet ping请求
+		case CloudSimTags.INFOPKT_SUBMIT:
+			processPingRequest(ev);
+			break;
 
-			//vm创建
-			case CloudSimTags.VM_CREATE:
-				processVmCreate(ev, false);
-				break;
+		// vm创建
+		case CloudSimTags.VM_CREATE:
+			processVmCreate(ev, false);
+			break;
 
-			case CloudSimTags.VM_CREATE_ACK:
-				processVmCreate(ev, true);
-				break;
+		case CloudSimTags.VM_CREATE_ACK:
+			processVmCreate(ev, true);
+			break;
 
-			//vm销毁
-			case CloudSimTags.VM_DESTROY:
-				processVmDestroy(ev, false);
-				break;
+		// vm销毁
+		case CloudSimTags.VM_DESTROY:
+			processVmDestroy(ev, false);
+			break;
 
-			case CloudSimTags.VM_DESTROY_ACK:
-				processVmDestroy(ev, true);
-				break;
+		case CloudSimTags.VM_DESTROY_ACK:
+			processVmDestroy(ev, true);
+			break;
 
-			//vm迁移
-			case CloudSimTags.VM_MIGRATE:
-				processVmMigrate(ev, false);
-				break;
+		// vm迁移
+		case CloudSimTags.VM_MIGRATE:
+			processVmMigrate(ev, false);
+			break;
 
-			case CloudSimTags.VM_MIGRATE_ACK:
-				processVmMigrate(ev, true);
-				break;
+		case CloudSimTags.VM_MIGRATE_ACK:
+			processVmMigrate(ev, true);
+			break;
 
-			case CloudSimTags.VM_DATA_ADD:
-				processDataAdd(ev, false);
-				break;
+		case CloudSimTags.VM_DATA_ADD:
+			processDataAdd(ev, false);
+			break;
 
-			case CloudSimTags.VM_DATA_ADD_ACK:
-				processDataAdd(ev, true);
-				break;
+		case CloudSimTags.VM_DATA_ADD_ACK:
+			processDataAdd(ev, true);
+			break;
 
-			case CloudSimTags.VM_DATA_DEL:
-				processDataDelete(ev, false);
-				break;
+		case CloudSimTags.VM_DATA_DEL:
+			processDataDelete(ev, false);
+			break;
 
-			case CloudSimTags.VM_DATA_DEL_ACK:
-				processDataDelete(ev, true);
-				break;
+		case CloudSimTags.VM_DATA_DEL_ACK:
+			processDataDelete(ev, true);
+			break;
 
-			//处理cloudlet
-			case CloudSimTags.VM_DATACENTER_EVENT:
-				updateCloudletProcessing();
-				checkCloudletCompletion();
-				break;
+		// 处理cloudlet
+		case CloudSimTags.VM_DATACENTER_EVENT:
+			updateCloudletProcessing();
+			checkCloudletCompletion();
+			break;
 
-			// other unknown tags are processed by this method
-			default:
-				processOtherEvent(ev);
-				break;
+		// other unknown tags are processed by this method
+		default:
+			processOtherEvent(ev);
+			break;
 		}
 	}
 
 	protected void clearConsumption(SimEvent ev) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	protected void clearVmProcessing(SimEvent ev) {
@@ -280,15 +280,15 @@ public class Datacenter extends SimEntity {
 		setLastProcessTime(0.1);
 		List<? extends Host> list = getVmAllocationPolicy().getHostList();
 		for (Host host : list) {
-            double time = host.updateVmsProcessing(CloudSim.clock());
+			double time = host.updateVmsProcessing(CloudSim.clock());
 		}
-		
+
 	}
 
 	/**
 	 * Process data del.
 	 * 
-	 * @param ev the ev
+	 * @param ev  the ev
 	 * @param ack the ack
 	 */
 	protected void processDataDelete(SimEvent ev, boolean ack) {
@@ -326,7 +326,7 @@ public class Datacenter extends SimEntity {
 	/**
 	 * Process data add.
 	 * 
-	 * @param ev the ev
+	 * @param ev  the ev
 	 * @param ack the ack
 	 */
 	protected void processDataAdd(SimEvent ev, boolean ack) {
@@ -344,8 +344,8 @@ public class Datacenter extends SimEntity {
 		int sentFrom = ((Integer) pack[1]).intValue(); // get sender ID
 
 		/******
-		 * // DEBUG Log.printLine(super.get_name() + ".addMasterFile(): " + file.getName() +
-		 * " from " + CloudSim.getEntityName(sentFrom));
+		 * // DEBUG Log.printLine(super.get_name() + ".addMasterFile(): " +
+		 * file.getName() + " from " + CloudSim.getEntityName(sentFrom));
 		 *******/
 
 		Object[] data = new Object[3];
@@ -361,8 +361,7 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 *  ping请求,pkt直接输出
-	 * Processes a ping request.
+	 * ping请求,pkt直接输出 Processes a ping request.
 	 * 
 	 * @param ev a Sim_event object
 	 * @pre ev != null
@@ -378,9 +377,9 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 询问一个cloudlet的状态
-	 * Process the event for an User/Broker who wants to know the status of a Cloudlet. This
-	 * PowerDatacenter will then send the status back to the User/Broker.
+	 * 询问一个cloudlet的状态 Process the event for an User/Broker who wants to know the
+	 * status of a Cloudlet. This PowerDatacenter will then send the status back to
+	 * the User/Broker.
 	 * 
 	 * @param ev a Sim_event object
 	 * @pre ev != null
@@ -399,7 +398,7 @@ public class Datacenter extends SimEntity {
 			userId = data[1];
 			vmId = data[2];
 
-			status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId).getCloudletScheduler()
+			status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
 					.getCloudletStatus(cloudletId);
 		}
 
@@ -410,8 +409,8 @@ public class Datacenter extends SimEntity {
 				cloudletId = cl.getCloudletId();
 				userId = cl.getUserId();
 
-				status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId)
-						.getCloudletScheduler().getCloudletStatus(cloudletId);
+				status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
+						.getCloudletStatus(cloudletId);
 			} catch (Exception e) {
 				Log.printLine(getName() + ": Error in processing CloudSimTags.CLOUDLET_STATUS");
 				Log.printLine(e.getMessage());
@@ -433,8 +432,8 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * Here all the method related to VM requests will be received and forwarded to the related
-	 * method.
+	 * Here all the method related to VM requests will be received and forwarded to
+	 * the related method.
 	 * 
 	 * @param ev the received event
 	 * @pre $none
@@ -447,11 +446,11 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 创建一个虚拟机
-	 * Process the event for an User/Broker who wants to create a VM in this PowerDatacenter. This
-	 * PowerDatacenter will then send the status back to the User/Broker.
+	 * 创建一个虚拟机 Process the event for an User/Broker who wants to create a VM in this
+	 * PowerDatacenter. This PowerDatacenter will then send the status back to the
+	 * User/Broker.
 	 * 
-	 * @param ev a Sim_event object
+	 * @param ev  a Sim_event object
 	 * @param ack the ack
 	 * @pre ev != null
 	 * @post $none
@@ -459,7 +458,7 @@ public class Datacenter extends SimEntity {
 	protected void processVmCreate(SimEvent ev, boolean ack) {
 		Vm vm = (Vm) ev.getData();
 
-		//在主机上分配vm
+		// 在主机上分配vm
 		boolean result = getVmAllocationPolicy().allocateHostForVm(vm);
 
 		if (ack) {
@@ -481,19 +480,19 @@ public class Datacenter extends SimEntity {
 			if (vm.isBeingInstantiated()) {
 				vm.setBeingInstantiated(false);
 			}
-			//新虚拟机，先处理一下cloudlet任务，即使没有任务
-			vm.updateVmProcessing(CloudSim.clock(), getVmAllocationPolicy().getHost(vm).getVmScheduler()
-					.getAllocatedMipsForVm(vm));
+			// 新虚拟机，先处理一下cloudlet任务，即使没有任务
+			vm.updateVmProcessing(CloudSim.clock(),
+					getVmAllocationPolicy().getHost(vm).getVmScheduler().getAllocatedMipsForVm(vm));
 		}
 
 	}
 
 	/**
-	 * Process the event for an User/Broker who wants to destroy a VM previously created in this
-	 * PowerDatacenter. This PowerDatacenter may send, upon request, the status back to the
-	 * User/Broker.
+	 * Process the event for an User/Broker who wants to destroy a VM previously
+	 * created in this PowerDatacenter. This PowerDatacenter may send, upon request,
+	 * the status back to the User/Broker.
 	 * 
-	 * @param ev a Sim_event object
+	 * @param ev  a Sim_event object
 	 * @param ack the ack
 	 * @pre ev != null
 	 * @post $none
@@ -515,9 +514,8 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 把一个vm移入到一个新的host上
-	 * Process the event for an User/Broker who wants to migrate a VM. This PowerDatacenter will
-	 * then send the status back to the User/Broker.
+	 * 把一个vm移入到一个新的host上 Process the event for an User/Broker who wants to migrate a
+	 * VM. This PowerDatacenter will then send the status back to the User/Broker.
 	 * 
 	 * @param ev a Sim_event object
 	 * @pre ev != null
@@ -556,19 +554,15 @@ public class Datacenter extends SimEntity {
 			sendNow(ev.getSource(), CloudSimTags.VM_CREATE_ACK, data);
 		}
 
-		Log.formatLine(
-				"%.2f: Migration of VM #%d to Host #%d is completed",
-				CloudSim.clock(),
-				vm.getId(),
+		Log.formatLine("%.2f: Migration of VM #%d to Host #%d is completed", CloudSim.clock(), vm.getId(),
 				host.getId());
 		vm.setInMigration(false);
 	}
 
 	/**
-	 * 根据事件类型(暂停，取消，回复)处理cloudlet
-	 * Processes a Cloudlet based on the event type.
+	 * 根据事件类型(暂停，取消，回复)处理cloudlet Processes a Cloudlet based on the event type.
 	 * 
-	 * @param ev a Sim_event object
+	 * @param ev   a Sim_event object
 	 * @param type event type
 	 * @pre ev != null
 	 * @pre type > 0
@@ -606,38 +600,37 @@ public class Datacenter extends SimEntity {
 
 		// begins executing ....
 		switch (type) {
-			case CloudSimTags.CLOUDLET_CANCEL:
-				processCloudletCancel(cloudletId, userId, vmId);
-				break;
+		case CloudSimTags.CLOUDLET_CANCEL:
+			processCloudletCancel(cloudletId, userId, vmId);
+			break;
 
-			case CloudSimTags.CLOUDLET_PAUSE:
-				processCloudletPause(cloudletId, userId, vmId, false);
-				break;
+		case CloudSimTags.CLOUDLET_PAUSE:
+			processCloudletPause(cloudletId, userId, vmId, false);
+			break;
 
-			case CloudSimTags.CLOUDLET_PAUSE_ACK:
-				processCloudletPause(cloudletId, userId, vmId, true);
-				break;
+		case CloudSimTags.CLOUDLET_PAUSE_ACK:
+			processCloudletPause(cloudletId, userId, vmId, true);
+			break;
 
-			case CloudSimTags.CLOUDLET_RESUME:
-				processCloudletResume(cloudletId, userId, vmId, false);
-				break;
+		case CloudSimTags.CLOUDLET_RESUME:
+			processCloudletResume(cloudletId, userId, vmId, false);
+			break;
 
-			case CloudSimTags.CLOUDLET_RESUME_ACK:
-				processCloudletResume(cloudletId, userId, vmId, true);
-				break;
-			default:
-				break;
+		case CloudSimTags.CLOUDLET_RESUME_ACK:
+			processCloudletResume(cloudletId, userId, vmId, true);
+			break;
+		default:
+			break;
 		}
 
 	}
 
 	/**
-	 *  任务完成不移交
-     * 移交到本地datacenter，移交到外地的datacenter
-	 * Process the event for an User/Broker who wants to move a Cloudlet.
+	 * 任务完成不移交 移交到本地datacenter，移交到外地的datacenter Process the event for an User/Broker
+	 * who wants to move a Cloudlet.
 	 * 
 	 * @param receivedData information about the migration
-	 * @param type event tag
+	 * @param type         event tag
 	 * @pre receivedData != null
 	 * @pre type > 0
 	 * @post $none
@@ -653,8 +646,8 @@ public class Datacenter extends SimEntity {
 		int destId = array[4];
 
 		// get the cloudlet
-		Cloudlet cl = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId)
-				.getCloudletScheduler().cloudletCancel(cloudletId);
+		Cloudlet cl = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
+				.cloudletCancel(cloudletId);
 
 		boolean failed = false;
 		if (cl == null) {// cloudlet doesn't exist
@@ -673,9 +666,10 @@ public class Datacenter extends SimEntity {
 			// prepare cloudlet for migration
 			cl.setVmId(vmDestId);
 
-			// the cloudlet will migrate from one vm to another does the destination VM exist?
+			// the cloudlet will migrate from one vm to another does the destination VM
+			// exist?
 			if (destId == getId()) {
-				Vm vm = getVmAllocationPolicy().getHost(vmDestId, userId).getVm(vmDestId,userId);
+				Vm vm = getVmAllocationPolicy().getHost(vmDestId, userId).getVm(vmDestId, userId);
 				if (vm == null) {
 					failed = true;
 				} else {
@@ -704,17 +698,17 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 处理一个cloudlet提交，如果此cloudlet完成，发送确认；没完成，发送确认及预计完成时间
-	 * Processes a Cloudlet submission.
+	 * 处理一个cloudlet提交，如果此cloudlet完成，发送确认；没完成，发送确认及预计完成时间 Processes a Cloudlet
+	 * submission.
 	 * 
-	 * @param ev a SimEvent object
+	 * @param ev  a SimEvent object
 	 * @param ack an acknowledgement
 	 * @pre ev != null
 	 * @post $none
 	 */
 	protected void processCloudletSubmit(SimEvent ev, boolean ack) {
 		System.out.print("---------处理的任务有：=-----------");
-		updateCloudletProcessing(); //一个新cloudlet提交之前，先处理（更新）每个cloudlet状态
+		updateCloudletProcessing(); // 一个新cloudlet提交之前，先处理（更新）每个cloudlet状态
 		try {
 			// gets the Cloudlet object
 			Cloudlet cl = (Cloudlet) ev.getData();
@@ -747,28 +741,29 @@ public class Datacenter extends SimEntity {
 				return;
 			}
 
-			// process this Cloudlet to this CloudResource    cloudlet没有完成
-			cl.setResourceParameter(getId(), getCharacteristics().getCostPerSecond(), getCharacteristics()
-					.getCostPerBw());
+			// process this Cloudlet to this CloudResource cloudlet没有完成
+			cl.setResourceParameter(getId(), getCharacteristics().getCostPerSecond(),
+					getCharacteristics().getCostPerBw());
 
 			int userId = cl.getUserId();
 			int vmId = cl.getVmId();
-						// time to transfer the files 文件传送时间
+			// time to transfer the files 文件传送时间
 			double fileTransferTime = predictFileTransferTime(cl.getRequiredFiles());
 			Host host = getVmAllocationPolicy().getHost(vmId, userId);
 			Vm vm = host.getVm(vmId, userId);
 			CloudletScheduler scheduler = vm.getCloudletScheduler();
-			double estimatedFinishTime = scheduler.cloudletSubmit(cl, fileTransferTime);//提交如果在处理返回处理完成事件，如果等待返回0
-			
+			double estimatedFinishTime = scheduler.cloudletSubmit(cl, fileTransferTime);// 提交如果在处理返回处理完成事件，如果等待返回0
+
 			// if this cloudlet is in the exec queue
 			if (estimatedFinishTime > 0.0 && !Double.isInfinite(estimatedFinishTime)) {
 				estimatedFinishTime += fileTransferTime;
-				/*	edited by HARSHIT	*/
-				//if(getName().equals("gateway-3"))
-				//System.out.println(getName()+" : ESTIMATED FINISH TIME ON "+((StreamOperator)vm).getName()+": "+estimatedFinishTime);
-				send(getId(), CloudSim.getMinTimeBetweenEvents()
-						+estimatedFinishTime, CloudSimTags.VM_DATACENTER_EVENT);
-				/*	edit done	*/
+				/* edited by HARSHIT */
+				// if(getName().equals("gateway-3"))
+				// System.out.println(getName()+" : ESTIMATED FINISH TIME ON
+				// "+((StreamOperator)vm).getName()+": "+estimatedFinishTime);
+				send(getId(), CloudSim.getMinTimeBetweenEvents() + estimatedFinishTime,
+						CloudSimTags.VM_DATACENTER_EVENT);
+				/* edit done */
 			}
 
 			if (ack) {
@@ -813,26 +808,25 @@ public class Datacenter extends SimEntity {
 				}
 			}
 		}
-		if(getName().contains("m"))//没有运行到这里
+		if (getName().contains("m"))// 没有运行到这里
 			return 0;
 		else
 			return time;
 	}
 
 	/**
-	 * 处理回复事件
-	 * Processes a Cloudlet resume request.
+	 * 处理回复事件 Processes a Cloudlet resume request.
 	 * 
 	 * @param cloudletId resuming cloudlet ID
-	 * @param userId ID of the cloudlet's owner
-	 * @param ack $true if an ack is requested after operation
-	 * @param vmId the vm id
+	 * @param userId     ID of the cloudlet's owner
+	 * @param ack        $true if an ack is requested after operation
+	 * @param vmId       the vm id
 	 * @pre $none
 	 * @post $none
 	 */
 	protected void processCloudletResume(int cloudletId, int userId, int vmId, boolean ack) {
-		double eventTime = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId)
-				.getCloudletScheduler().cloudletResume(cloudletId);
+		double eventTime = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
+				.cloudletResume(cloudletId);
 
 		boolean status = false;
 		if (eventTime > 0.0) { // if this cloudlet is in the exec queue
@@ -856,19 +850,18 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 处理暂停事件
-	 * Processes a Cloudlet pause request.
+	 * 处理暂停事件 Processes a Cloudlet pause request.
 	 * 
 	 * @param cloudletId resuming cloudlet ID
-	 * @param userId ID of the cloudlet's owner
-	 * @param ack $true if an ack is requested after operation
-	 * @param vmId the vm id
+	 * @param userId     ID of the cloudlet's owner
+	 * @param ack        $true if an ack is requested after operation
+	 * @param vmId       the vm id
 	 * @pre $none
 	 * @post $none
 	 */
 	protected void processCloudletPause(int cloudletId, int userId, int vmId, boolean ack) {
-		boolean status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId)
-				.getCloudletScheduler().cloudletPause(cloudletId);
+		boolean status = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
+				.cloudletPause(cloudletId);
 
 		if (ack) {
 			int[] data = new int[3];
@@ -884,26 +877,26 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 取消一个cloudlet，查找host，查找vm，查找cloudlet表取消，发送事件
-	 * Processes a Cloudlet cancel request.
+	 * 取消一个cloudlet，查找host，查找vm，查找cloudlet表取消，发送事件 Processes a Cloudlet cancel
+	 * request.
 	 * 
 	 * @param cloudletId resuming cloudlet ID
-	 * @param userId ID of the cloudlet's owner
-	 * @param vmId the vm id
+	 * @param userId     ID of the cloudlet's owner
+	 * @param vmId       the vm id
 	 * @pre $none
 	 * @post $none
 	 */
 	protected void processCloudletCancel(int cloudletId, int userId, int vmId) {
-		Cloudlet cl = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId,userId)
-				.getCloudletScheduler().cloudletCancel(cloudletId);
+		Cloudlet cl = getVmAllocationPolicy().getHost(vmId, userId).getVm(vmId, userId).getCloudletScheduler()
+				.cloudletCancel(cloudletId);
 		sendNow(userId, CloudSimTags.CLOUDLET_CANCEL, cl);
 	}
 
 	/**
-	 * 对数据中心每个host，每个host对每个vm更新每个cloudlet的处理
-	 * Updates processing of each cloudlet running in this PowerDatacenter. It is necessary because
-	 * Hosts and VirtualMachines are simple objects, not entities. So, they don't receive events and
-	 * updating cloudlets inside them must be called from the outside.
+	 * 对数据中心每个host，每个host对每个vm更新每个cloudlet的处理 Updates processing of each cloudlet
+	 * running in this PowerDatacenter. It is necessary because Hosts and
+	 * VirtualMachines are simple objects, not entities. So, they don't receive
+	 * events and updating cloudlets inside them must be called from the outside.
 	 * 
 	 * @pre $none
 	 * @post $none
@@ -938,14 +931,13 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 检查是否有任务完成
-	 * Verifies if some cloudlet inside this PowerDatacenter already finished. If yes, send it to
-	 * the User/Broker
+	 * 检查是否有任务完成 Verifies if some cloudlet inside this PowerDatacenter already
+	 * finished. If yes, send it to the User/Broker
 	 * 
 	 * @pre $none
 	 * @post $none
 	 */
-	
+
 	protected void checkCloudletCompletion() {
 		List<? extends Host> list = getVmAllocationPolicy().getHostList();
 		for (int i = 0; i < list.size(); i++) {
@@ -962,9 +954,9 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * 添加一个file到resource的存储器，在实验开始前，如果是主本，需要注册
-	 * Adds a file into the resource's storage before the experiment starts. If the file is a master
-	 * file, then it will be registered to the RC when the experiment begins.
+	 * 添加一个file到resource的存储器，在实验开始前，如果是主本，需要注册 Adds a file into the resource's
+	 * storage before the experiment starts. If the file is a master file, then it
+	 * will be registered to the RC when the experiment begins.
 	 * 
 	 * @param file a DataCloud file
 	 * @return a tag number denoting whether this operation is a success or not
@@ -1038,8 +1030,8 @@ public class Datacenter extends SimEntity {
 	}
 
 	/**
-	 * Deletes the file from the storage. Also, check whether it is possible to delete the file from
-	 * the storage.
+	 * Deletes the file from the storage. Also, check whether it is possible to
+	 * delete the file from the storage.
 	 * 
 	 * @param fileName the name of the file to be deleted
 	 * @return the error message
@@ -1061,6 +1053,7 @@ public class Datacenter extends SimEntity {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see cloudsim.core.SimEntity#shutdownEntity()
 	 */
 	@Override
@@ -1070,6 +1063,7 @@ public class Datacenter extends SimEntity {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see cloudsim.core.SimEntity#startEntity()
 	 */
 	@Override

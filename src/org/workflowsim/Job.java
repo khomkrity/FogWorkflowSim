@@ -103,7 +103,7 @@ public class Job extends Task {
      * @post $none
      */
     @Override
-    public List getParentList() {
+    public List<Task> getParentList() {
         return super.getParentList();
     }
     

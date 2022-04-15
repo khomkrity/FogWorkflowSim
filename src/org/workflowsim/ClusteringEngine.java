@@ -214,34 +214,34 @@ public final class ClusteringEngine extends SimEntity {
                 fileList.add(file);
             }
         }
-        job.setFileList(fileList);
-        job.setClassType(ClassType.STAGE_IN.value);
-
-        /**
-         * stage-in is always first level job
-         */
-        job.setDepth(0);
-        job.setPriority(0);
-
-        /**
-         * A very simple strategy if you have multiple schedulers and
-         * sub-workflows just use the first scheduler
-         */
-        job.setUserId(getWorkflowEngine().getSchedulerId(0));
-
-        /**
-         * add stage-in job
-         */
-        for (Job cJob : getJobList()) {
-            /**
-             * first level jobs
-             */
-            if (cJob.getParentList().isEmpty()) {
-                cJob.addParent(job);
-                job.addChild(cJob);
-            }
-        }
-        getJobList().add(job);
+//        job.setFileList(fileList);
+//        job.setClassType(ClassType.STAGE_IN.value);
+//
+//        /**
+//         * stage-in is always first level job
+//         */
+//        job.setDepth(0);
+//        job.setPriority(0);
+//
+//        /**
+//         * A very simple strategy if you have multiple schedulers and
+//         * sub-workflows just use the first scheduler
+//         */
+//        job.setUserId(getWorkflowEngine().getSchedulerId(0));
+//
+//        /**
+//         * add stage-in job
+//         */
+//        for (Job cJob : getJobList()) {
+//            /**
+//             * first level jobs
+//             */
+//            if (cJob.getParentList().isEmpty()) {
+//                cJob.addParent(job);
+//                job.addChild(cJob);
+//            }
+//        }
+//        getJobList().add(job);
     }
 
     /**
@@ -285,7 +285,7 @@ public final class ClusteringEngine extends SimEntity {
 
     /**
      * Overrides this method when making a new and different type of Broker.
-     * This method is called by {@link #body()} for incoming unknown tags.
+     * This method is called by {@link #processEvent(SimEvent)} for incoming unknown tags.
      *
      * @param ev a SimEvent object
      * @pre ev != null

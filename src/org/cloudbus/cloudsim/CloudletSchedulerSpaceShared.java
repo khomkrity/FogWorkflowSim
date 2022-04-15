@@ -15,10 +15,11 @@ import org.cloudbus.cloudsim.core.CloudSim;
 import org.workflowsim.WorkflowEngine;
 
 /**
- * CloudletSchedulerSpaceShared implements a policy of scheduling performed by a virtual machine. It
- * consider that there will be only one cloudlet per VM. Other cloudlets will be in a waiting list.
- * We consider that file transfer from cloudlets waiting happens before cloudlet execution. I.e.,
- * even though cloudlets must wait for CPU, data transfer happens as soon as cloudlets are
+ * CloudletSchedulerSpaceShared implements a policy of scheduling performed by a
+ * virtual machine. It consider that there will be only one cloudlet per VM.
+ * Other cloudlets will be in a waiting list. We consider that file transfer
+ * from cloudlets waiting happens before cloudlet execution. I.e., even though
+ * cloudlets must wait for CPU, data transfer happens as soon as cloudlets are
  * submitted.
  * 
  * @author Rodrigo N. Calheiros
@@ -44,12 +45,12 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 	/** The used PEs. */
 	protected int usedPes;
-	
-	public static List<? extends ResCloudlet> cloudlets=new ArrayList<ResCloudlet>();
+
+	public static List<? extends ResCloudlet> cloudlets = new ArrayList<ResCloudlet>();
 
 	/**
-	 * Creates a new CloudletSchedulerSpaceShared object. This method must be invoked before
-	 * starting the actual simulation.
+	 * Creates a new CloudletSchedulerSpaceShared object. This method must be
+	 * invoked before starting the actual simulation.
 	 * 
 	 * @pre $none
 	 * @post $none
@@ -65,12 +66,14 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	}
 
 	/**
-	 * Updates the processing of cloudlets running under management of this scheduler.
+	 * Updates the processing of cloudlets running under management of this
+	 * scheduler.
 	 * 
 	 * @param currentTime current simulation time
-	 * @param mipsShare array with MIPS share of each processor available to the scheduler
-	 * @return time predicted completion time of the earliest finishing cloudlet, or 0 if there is
-	 *         no next events
+	 * @param mipsShare   array with MIPS share of each processor available to the
+	 *                    scheduler
+	 * @return time predicted completion time of the earliest finishing cloudlet, or
+	 *         0 if there is no next events
 	 * @pre currentTime >= 0
 	 * @post $none
 	 */
@@ -92,6 +95,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 		// each machine in the exec list has the same amount of cpu
 		for (ResCloudlet rcl : getCloudletExecList()) {
+
 			rcl.updateCloudletFinishedSoFar((long) (capacity * timeSpam * rcl.getNumberOfPes() * Consts.MILLION));
 		}
 
@@ -159,18 +163,19 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 			rcl.setCloudletStatus(Cloudlet.CREATED);
 			rcl.setExecParam(0, 0);
 			rcl.setSubmissionTime(0);
-			//rcl.init2();
-			/*rcl.setExecParam(CloudSim.clock(), 0.0);
-			rcl.setSubmissionTime(0.0);*/
+			// rcl.init2();
+			/*
+			 * rcl.setExecParam(CloudSim.clock(), 0.0); rcl.setSubmissionTime(0.0);
+			 */
 		}
-		usedPes=0;
-		currentCpus=0;
+		usedPes = 0;
+		currentCpus = 0;
 		getCloudletFinishedList().removeAll(cloudlets);
 		getCloudletWaitingList().removeAll(getCloudletWaitingList());
 		cloudlets.removeAll(cloudlets);
-		
+
 	}
-	
+
 	/**
 	 * Cancels execution of a cloudlet.
 	 * 
@@ -324,7 +329,6 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 		if (found) {
 			ResCloudlet rcl = getCloudletPausedList().remove(position);
-
 			// it can go to the exec list
 			if ((currentCpus - usedPes) >= rcl.getNumberOfPes()) {
 				rcl.setCloudletStatus(Cloudlet.INEXEC);
@@ -352,8 +356,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 				capacity /= cpus;
 
 				long remainingLength = rcl.getRemainingCloudletLength();
-				double estimatedFinishTime = CloudSim.clock()
-						+ (remainingLength / (capacity * rcl.getNumberOfPes()));
+				double estimatedFinishTime = CloudSim.clock() + (remainingLength / (capacity * rcl.getNumberOfPes()));
 
 				return estimatedFinishTime;
 			} else {// no enough free PEs: go to the waiting queue
@@ -369,7 +372,8 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 		}
 
-		// not found in the paused list: either it is in in the queue, executing or not exist
+		// not found in the paused list: either it is in in the queue, executing or not
+		// exist
 		return 0.0;
 
 	}
@@ -377,9 +381,11 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	/**
 	 * Receives an cloudlet to be executed in the VM managed by this scheduler.
 	 * 
-	 * @param cloudlet the submited cloudlet
-	 * @param fileTransferTime time required to move the required files from the SAN to the VM
-	 * @return expected finish time of this cloudlet, or 0 if it is in the waiting queue
+	 * @param cloudlet         the submited cloudlet
+	 * @param fileTransferTime time required to move the required files from the SAN
+	 *                         to the VM
+	 * @return expected finish time of this cloudlet, or 0 if it is in the waiting
+	 *         queue
 	 * @pre gl != null
 	 * @post $none
 	 */
@@ -395,6 +401,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 			getCloudletExecList().add(rcl);
 			usedPes += cloudlet.getNumberOfPes();
 		} else {// no enough free PEs: go to the waiting queue
+			System.out.println("not enough PEs:");
 			ResCloudlet rcl = new ResCloudlet(cloudlet);
 			rcl.setCloudletStatus(Cloudlet.QUEUED);
 			getCloudletWaitingList().add(rcl);
@@ -413,22 +420,22 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 		currentCpus = cpus;
 		capacity /= cpus;
-
 		// use the current capacity to estimate the extra amount of
 		// time to file transferring. It must be added to the cloudlet length
-		
+
 		double extraSize = capacity * fileTransferTime;
 		long length = cloudlet.getCloudletLength();
-		if(WorkflowEngine.already==0) {
+		if (WorkflowEngine.already == 0) {
 			length += extraSize;
 		}
 		cloudlet.setCloudletLength(length);
-		//System.out.println("cloudlet#"+cloudlet.getCloudletId()+".getCloudletLength()="+cloudlet.getCloudletLength());
+		// System.out.println("cloudlet#"+cloudlet.getCloudletId()+".getCloudletLength()="+cloudlet.getCloudletLength());
 		return cloudlet.getCloudletLength() / capacity;
 	}
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see cloudsim.CloudletScheduler#cloudletSubmit(cloudsim.Cloudlet)
 	 */
 	@Override
@@ -483,7 +490,8 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	}
 
 	/**
-	 * Informs about completion of some cloudlet in the VM managed by this scheduler.
+	 * Informs about completion of some cloudlet in the VM managed by this
+	 * scheduler.
 	 * 
 	 * @return $true if there is at least one finished cloudlet; $false otherwise
 	 * @pre $none
@@ -551,7 +559,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	/**
 	 * Cloudlet waiting list.
 	 * 
-	 * @param <T> the generic type
+	 * @param <T>                 the generic type
 	 * @param cloudletWaitingList the cloudlet waiting list
 	 */
 	protected <T extends ResCloudlet> void cloudletWaitingList(List<T> cloudletWaitingList) {
@@ -572,7 +580,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	/**
 	 * Sets the cloudlet exec list.
 	 * 
-	 * @param <T> the generic type
+	 * @param <T>              the generic type
 	 * @param cloudletExecList the new cloudlet exec list
 	 */
 	protected <T extends ResCloudlet> void setCloudletExecList(List<T> cloudletExecList) {
@@ -593,7 +601,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	/**
 	 * Sets the cloudlet paused list.
 	 * 
-	 * @param <T> the generic type
+	 * @param <T>                the generic type
 	 * @param cloudletPausedList the new cloudlet paused list
 	 */
 	protected <T extends ResCloudlet> void setCloudletPausedList(List<T> cloudletPausedList) {
@@ -614,7 +622,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 	/**
 	 * Sets the cloudlet finished list.
 	 * 
-	 * @param <T> the generic type
+	 * @param <T>                  the generic type
 	 * @param cloudletFinishedList the new cloudlet finished list
 	 */
 	protected <T extends ResCloudlet> void setCloudletFinishedList(List<T> cloudletFinishedList) {
@@ -623,6 +631,7 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see org.cloudbus.cloudsim.CloudletScheduler#getCurrentRequestedMips()
 	 */
 	@Override
@@ -638,9 +647,10 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * org.cloudbus.cloudsim.CloudletScheduler#getTotalCurrentAvailableMipsForCloudlet(org.cloudbus
-	 * .cloudsim.ResCloudlet, java.util.List)
+	 * 
+	 * @see org.cloudbus.cloudsim.CloudletScheduler#
+	 * getTotalCurrentAvailableMipsForCloudlet(org.cloudbus .cloudsim.ResCloudlet,
+	 * java.util.List)
 	 */
 	@Override
 	public double getTotalCurrentAvailableMipsForCloudlet(ResCloudlet rcl, List<Double> mipsShare) {
@@ -659,9 +669,10 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * org.cloudbus.cloudsim.CloudletScheduler#getTotalCurrentAllocatedMipsForCloudlet(org.cloudbus
-	 * .cloudsim.ResCloudlet, double)
+	 * 
+	 * @see org.cloudbus.cloudsim.CloudletScheduler#
+	 * getTotalCurrentAllocatedMipsForCloudlet(org.cloudbus .cloudsim.ResCloudlet,
+	 * double)
 	 */
 	@Override
 	public double getTotalCurrentAllocatedMipsForCloudlet(ResCloudlet rcl, double time) {
@@ -671,9 +682,10 @@ public class CloudletSchedulerSpaceShared extends CloudletScheduler {
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * org.cloudbus.cloudsim.CloudletScheduler#getTotalCurrentRequestedMipsForCloudlet(org.cloudbus
-	 * .cloudsim.ResCloudlet, double)
+	 * 
+	 * @see org.cloudbus.cloudsim.CloudletScheduler#
+	 * getTotalCurrentRequestedMipsForCloudlet(org.cloudbus .cloudsim.ResCloudlet,
+	 * double)
 	 */
 	@Override
 	public double getTotalCurrentRequestedMipsForCloudlet(ResCloudlet rcl, double time) {

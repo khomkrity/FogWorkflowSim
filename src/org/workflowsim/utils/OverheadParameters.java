@@ -163,7 +163,7 @@ public class OverheadParameters {
         }
         if (cl != null) {
             Job job = (Job) cl;
-
+            
             if (this.CLUST_DELAY.containsKey(job.getDepth())) {
                 delay = this.CLUST_DELAY.get(job.getDepth()).getNextSample();
             } else if (this.CLUST_DELAY.containsKey(0)) {
