@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EnvironmentSetting>
+	<Cloud name="cloud" hostnum="1" bandwidth="40">
+		<host name="host-1" MIPS="1600" cost="0.5"></host>
+	</Cloud>
+	<FogNode name="fog" hostnum="3" bandwidth="100">
+		<host name="host-1" MIPS="1200" cost="0.1"></host>
+		<host name="host-2" MIPS="1200" cost="0.1"></host>
+		<host name="host-3" MIPS="1200" cost="0.1"></host>
+	</FogNode>
+	<EndDevice name="end-device" hostnum="1" bandwidth="0">
+		<host name="host-1" MIPS="1000" cost="0"></host>
+	</EndDevice>
+</EnvironmentSetting>
