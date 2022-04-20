@@ -160,8 +160,6 @@ public class MainSchedulingEnvironment {
         String appId = "workflow";
         String dagName = getDagName(dagPath);
 
-        if (algorithmName.equals("STATIC")) algorithmName = "HEFT";
-
         createFogDevices();
 
         List<? extends Host> hosts = new ArrayList<>();
@@ -198,6 +196,7 @@ public class MainSchedulingEnvironment {
         System.out.println("order: " + jobArrivalOrders);
         setTaskFinishTime(orderedJobs);
         setPortDelayToJobs(orderedJobs);
+        if (algorithmName.equals("STATIC")) algorithmName = "HEFT";
         setSchedulingResult(dagName, algorithmName, orderedJobs);
         Log.enable();
     }
@@ -417,7 +416,7 @@ public class MainSchedulingEnvironment {
         Set<Double> eventTimes = new HashSet<>();
         for (int i = 0; i < orderedJobs.size(); i++) {
             Job job = orderedJobs.get(i);
-            double inputDelay = PortConstraint.getPortDelay();
+            double portDelay = PortConstraint.getPortDelay();
             double startTime = job.getExecStartTime();
             double finishTime = job.getTaskFinishTime();
 
@@ -431,24 +430,23 @@ public class MainSchedulingEnvironment {
             }
 
             while (startTime <= latestFinishTime) {
-                startTime += inputDelay;
-                finishTime += inputDelay;
+                startTime += portDelay;
+                finishTime += portDelay;
             }
 
-            // check parent time
+            // check parent's finish time
             for (Task parent : job.getParentList()) {
-                double parentStartTime = parent.getExecStartTime();
                 double parentFinishTime = parent.getTaskFinishTime();
-                while (startTime <= parentStartTime || startTime <= parentFinishTime) {
-                    startTime += inputDelay;
-                    finishTime += inputDelay;
+                while (startTime <= parentFinishTime) {
+                    startTime += portDelay;
+                    finishTime += portDelay;
                 }
             }
 
             // check all event time
             while (eventTimes.contains(startTime)) {
-                startTime += inputDelay;
-                finishTime += inputDelay;
+                startTime += portDelay;
+                finishTime += portDelay;
             }
 
             job.setExecStartTime(startTime);
