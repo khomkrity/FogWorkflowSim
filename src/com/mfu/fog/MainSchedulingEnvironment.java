@@ -28,7 +28,7 @@ import java.util.*;
 public class MainSchedulingEnvironment {
     private static final String INPUT_PATH = "config/dax/";
     private static final List<String> ALGORITHM_NAMES = new ArrayList<>(
-            Arrays.asList("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "STATIC"));
+            Arrays.asList("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "HEFT"));
     private static final List<Double[]> record = new ArrayList<>();
     private static final Map<String, Map<String, List<Job>>> SCHEDULING_RESULTS = new HashMap<>();
     private static final Map<String, List<Long>> HOST_MIPS = new HashMap<>();
@@ -196,7 +196,6 @@ public class MainSchedulingEnvironment {
         System.out.println("order: " + jobArrivalOrders);
         setTaskFinishTime(orderedJobs);
         setPortDelayToJobs(orderedJobs);
-        if (algorithmName.equals("STATIC")) algorithmName = "HEFT";
         setSchedulingResult(dagName, algorithmName, orderedJobs);
         Log.enable();
     }
@@ -207,19 +206,41 @@ public class MainSchedulingEnvironment {
     }
 
     private static void initializeSimulationParameters(String dagPath, String algorithmName, int numberOfVirtualMachine) {
-        Parameters.SchedulingAlgorithm schedulingMethod = Parameters.SchedulingAlgorithm.valueOf(algorithmName);
+        Parameters.PlanningAlgorithm planningMethod = getPlanningAlgorithm(algorithmName);
+
+        Parameters.SchedulingAlgorithm schedulingMethod = getSchedulingAlgorithm(algorithmName);
+
         Parameters.Optimization optimizationObjective = Parameters.Optimization.valueOf(OBJECTIVE);
-        Parameters.PlanningAlgorithm planningMethod = Parameters.PlanningAlgorithm.HEFT;
+
         OverheadParameters overheadParameters = new OverheadParameters(0, null, null, null, null, 0);
+
         ClusteringParameters.ClusteringMethod clusteringMethod = ClusteringParameters.ClusteringMethod.NONE;
         int clusteringSize = 0;
         int clusteringNumber = 0;
         ClusteringParameters clusteringParameters = new ClusteringParameters(clusteringNumber, clusteringSize,
                 clusteringMethod, null);
+
         Parameters.init(numberOfVirtualMachine, dagPath, null, null, overheadParameters, clusteringParameters,
                 schedulingMethod, optimizationObjective, planningMethod, null, 0);
     }
 
+    private static Parameters.SchedulingAlgorithm getSchedulingAlgorithm(String algorithmName){
+        for(Parameters.SchedulingAlgorithm schedulingAlgorithm : Parameters.SchedulingAlgorithm.values()){
+            if(schedulingAlgorithm.name().equals(algorithmName)){
+                return schedulingAlgorithm;
+            }
+        }
+        return Parameters.SchedulingAlgorithm.STATIC;
+    }
+
+    private static Parameters.PlanningAlgorithm getPlanningAlgorithm(String algorithmName){
+        for(Parameters.PlanningAlgorithm planningAlgorithm : Parameters.PlanningAlgorithm.values()){
+            if(planningAlgorithm.name().equals(algorithmName)){
+                return planningAlgorithm;
+            }
+        }
+        return Parameters.PlanningAlgorithm.INVALID;
+    }
 
     private static void createFogDevices() throws Exception {
         String hostName = "cloud";
