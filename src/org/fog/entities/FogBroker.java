@@ -13,11 +13,15 @@ import org.workflowsim.Job;
 import org.workflowsim.WorkflowEngine;
 import org.workflowsim.WorkflowSimTags;
 import org.workflowsim.failure.FailureGenerator;
+import org.workflowsim.planning.BasePlanningAlgorithm;
 import org.workflowsim.scheduling.*;
 import org.workflowsim.utils.Parameters;
 import org.workflowsim.utils.Parameters.SchedulingAlgorithm;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 public class FogBroker extends PowerDatacenterBroker {
 
@@ -263,7 +267,11 @@ public class FogBroker extends PowerDatacenterBroker {
      */
     protected void processCloudletUpdate(SimEvent ev) {
         BaseSchedulingAlgorithm scheduler = getScheduler(Parameters.getSchedulingAlgorithm());
-        scheduler.setCloudletList(getCloudletList());
+        List<Cloudlet> cloudlets = getCloudletList();
+        if (!Parameters.getPlanningAlgorithm().equals(Parameters.PlanningAlgorithm.INVALID)) {
+            cloudlets = getOrderedCloudletsFromPlanningAlgorithm(cloudlets);
+        }
+        scheduler.setCloudletList(cloudlets);
         List<? extends Vm> vmlist = getVmsCreatedList();
         Collections.reverse(vmlist);
         scheduler.setVmList((List<CondorVM>) vmlist);
@@ -301,6 +309,22 @@ public class FogBroker extends PowerDatacenterBroker {
         getCloudletSubmittedList().addAll(scheduledList);
         cloudletsSubmitted += scheduledList.size();
 
+    }
+
+    private List<Cloudlet> getOrderedCloudletsFromPlanningAlgorithm(List<Cloudlet> cloudlets) {
+        List<Cloudlet> orderedCloudlets = new ArrayList<>();
+        List<Integer> orders = BasePlanningAlgorithm.getTaskOrders();
+        while (orderedCloudlets.size() != cloudlets.size()) {
+            for (int cloudletId : orders) {
+                for (Cloudlet cloudlet : cloudlets) {
+                    if (cloudletId == cloudlet.getCloudletId()) {
+                        orderedCloudlets.add(cloudlet);
+                        break;
+                    }
+                }
+            }
+        }
+        return orderedCloudlets;
     }
 
     /**
@@ -517,13 +541,7 @@ public class FogBroker extends PowerDatacenterBroker {
         if (Parameters.getOverheadParams().getPostDelay() != null) {
             delay = Parameters.getOverheadParams().getPostDelay(job);
         }
-//        if(job.getoffloading() != controller.getmobile().getId()){
-//        	if(job.getoffloading() != controller.getcloud().getId())
-//        		delay = job.getOutputsize() / controller.parameter / controller.WAN_Bandwidth;
-//        	else
-//        		delay = job.getOutputsize() / controller.parameter / controller.LAN_Bandwidth;
-//        }
-//        System.out.println(cloudlet.getCloudletId()+".return delay : "+delay);
+
         schedule(this.workflowEngineId, delay, CloudSimTags.CLOUDLET_RETURN, cloudlet);
 
         cloudletsSubmitted--;

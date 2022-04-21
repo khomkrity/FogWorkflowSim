@@ -40,6 +40,8 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
      */
     private List<? extends Vm> vmList;
 
+    private static List<Integer> taskOrders;
+
     /**
      * the datacenter list
      */
@@ -48,6 +50,14 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
      * Initialize a BaseScheduler
      */
     public BasePlanningAlgorithm() {
+    }
+
+    public static List<Integer> getTaskOrders(){
+        return taskOrders;
+    }
+
+    protected static void setTaskOrders(List<Integer> taskOrders){
+        BasePlanningAlgorithm.taskOrders = new ArrayList<>(taskOrders);
     }
 
     /**

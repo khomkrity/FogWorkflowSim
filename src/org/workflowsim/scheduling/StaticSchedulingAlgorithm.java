@@ -19,7 +19,9 @@ import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.Log;
 import org.workflowsim.CondorVM;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,7 +67,7 @@ public class StaticSchedulingAlgorithm extends BaseSchedulingAlgorithm {
                 cloudlet.setVmId(0);
             }
             CondorVM vm = mId2Vm.get(cloudlet.getVmId());
-            System.out.println(vm.getState());
+            System.out.println("schedule cloudlet id: "+cloudlet.getCloudletId()+" with vm id: "+cloudlet.getVmId());
             //   if (vm.getState() == WorkflowSimTags.VM_STATUS_IDLE) {
             //     vm.setState(WorkflowSimTags.VM_STATUS_BUSY);
             getScheduledList().add(cloudlet);

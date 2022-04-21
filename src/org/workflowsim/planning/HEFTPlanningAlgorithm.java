@@ -33,28 +33,33 @@ import java.util.*;
 public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
     private final Map<Task, Map<CondorVM, Double>> computationCosts;
-    private Map<Task, Double> averageComputationCosts;
     private final Map<Task, Map<Task, Double>> transferCosts;
+    private static final List<Integer> taskOrders = new ArrayList<>();
     private final Map<Task, Double> rank;
     private final Map<CondorVM, List<Event>> schedules;
     private final Map<Task, Double> earliestFinishTimes;
     private double averageBandwidth;
 
-    private static class Event {
+    private static class Event implements Comparable<Event> {
 
-        public double startTime;
-        public double finishTime;
+        public Double startTime;
+        public Double finishTime;
         public Task task;
 
-        public Event(double startTime, double finishTime) {
+        public Event(Double startTime, Double finishTime) {
             this.startTime = startTime;
             this.finishTime = finishTime;
         }
 
-        public Event(Task task, double startTime, double finishTime) {
+        public Event(Task task, Double startTime, Double finishTime) {
             this.task = task;
             this.startTime = startTime;
             this.finishTime = finishTime;
+        }
+
+        @Override
+        public int compareTo(Event o) {
+            return startTime.compareTo(o.startTime);
         }
     }
 
@@ -104,6 +109,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
         // Selection phase
         allocateTasks();
 
+        setTaskOrders(taskOrders);
         // result
         print();
     }
@@ -275,7 +281,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
         for (Object vmObject : getVmList()) {
             CondorVM vm = (CondorVM) vmObject;
-            double minReadyTime = 0.0;
+            double minReadyTime = 0.1;
 
             for (Task parent : task.getParentList()) {
                 double readyTime = earliestFinishTimes.get(parent);
@@ -299,6 +305,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
         assert chosenVM != null;
         task.setVmId(chosenVM.getId());
+        taskOrders.add(task.getCloudletId());
     }
 
     /**
