@@ -11,7 +11,6 @@ import java.util.*;
 
 class UserInput {
 
-    private final Scanner scanner;
     private int numberOfCloud;
     private int numberOfFog;
     private int numberOfMobile;
@@ -22,37 +21,37 @@ class UserInput {
     private List<String> dagPaths;
 
     UserInput() {
-        scanner = new Scanner(System.in);
         hostMips = new HashMap<>();
         hostCosts = new HashMap<>();
         algorithmNames = new ArrayList<>(List.of("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "HEFT"));
     }
 
     public void readSimulationInput() throws FileNotFoundException {
-        readEnvironmentSetting();
-        readPortConstraint();
+        Scanner scanner = new Scanner(System.in);
+        readEnvironmentSetting(scanner);
+        readPortConstraint(scanner);
         readDagPaths();
         scanner.close();
     }
 
-    private void readEnvironmentSetting() throws NumberFormatException, ArithmeticException {
+    private void readEnvironmentSetting(Scanner scanner) throws NumberFormatException, ArithmeticException {
         System.out.println();
         System.out.println("Environment Settings");
 
         System.out.print("Number of Cloud: ");
-        this.numberOfCloud = readNumberOfHost();
-        readHostSpec(CloudConstants.DEFAULT.HOST_NAME, getNumberOfCloud());
+        this.numberOfCloud = readNumberOfHost(scanner);
+        readHostSpec(scanner, CloudConstants.DEFAULT.HOST_NAME, getNumberOfCloud());
 
         System.out.print("Number of Fog: ");
-        this.numberOfFog = readNumberOfHost();
-        readHostSpec(FogDeviceConstants.DEFAULT.HOST_NAME, getNumberOfFog());
+        this.numberOfFog = readNumberOfHost(scanner);
+        readHostSpec(scanner, FogDeviceConstants.DEFAULT.HOST_NAME, getNumberOfFog());
 
         System.out.print("Number of Mobile: ");
-        this.numberOfMobile = readNumberOfHost();
-        readHostSpec(EndDeviceConstants.DEFAULT.HOST_NAME, getNumberOfMobile());
+        this.numberOfMobile = readNumberOfHost(scanner);
+        readHostSpec(scanner, EndDeviceConstants.DEFAULT.HOST_NAME, getNumberOfMobile());
     }
 
-    private void readPortConstraint() throws NumberFormatException, ArithmeticException {
+    private void readPortConstraint(Scanner scanner) throws NumberFormatException, ArithmeticException {
         System.out.println();
         System.out.println("Additional Constraint");
         System.out.print("I/O Port Communication Delay: ");
@@ -62,7 +61,7 @@ class UserInput {
         }
     }
 
-    private int readNumberOfHost() throws NumberFormatException, ArithmeticException {
+    private int readNumberOfHost(Scanner scanner) throws NumberFormatException, ArithmeticException {
         int numberOfHost = Integer.parseInt(scanner.next());
         if (numberOfHost < 0) {
             throw new ArithmeticException("host cannot be less than zero");
@@ -70,7 +69,7 @@ class UserInput {
         return numberOfHost;
     }
 
-    private void readHostSpec(String hostName, int numberOfHost)
+    private void readHostSpec(Scanner scanner, String hostName, int numberOfHost)
             throws NumberFormatException, ArithmeticException {
         List<Long> mips = new ArrayList<>();
         List<Double> costs = new ArrayList<>();
