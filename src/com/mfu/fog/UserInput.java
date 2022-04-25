@@ -26,11 +26,11 @@ class UserInput {
         algorithmNames = new ArrayList<>(List.of("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "HEFT"));
     }
 
-    public void readSimulationInput() throws FileNotFoundException {
+    public void readSimulationInput(String inputPath) throws FileNotFoundException {
         Scanner scanner = new Scanner(System.in);
         readEnvironmentSetting(scanner);
         readPortConstraint(scanner);
-        readDagPaths();
+        readDagPaths(inputPath);
         scanner.close();
     }
 
@@ -91,10 +91,9 @@ class UserInput {
         getHostCosts().put(hostName, costs);
     }
 
-    private void readDagPaths() throws FileNotFoundException {
+    private void readDagPaths(String inputPath) throws FileNotFoundException {
         List<String> dagPaths = new ArrayList<>();
-        String INPUT_PATH = "config/dax/";
-        File dagFolder = new File(INPUT_PATH);
+        File dagFolder = new File(inputPath);
         File[] dagFiles = dagFolder.listFiles();
         assert dagFiles != null;
         for (File dagFile : dagFiles) {

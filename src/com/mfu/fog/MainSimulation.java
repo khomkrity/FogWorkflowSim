@@ -25,13 +25,14 @@ public class MainSimulation {
     private static final ControllerConstants controllerConstants = ControllerConstants.DEFAULT;
     private static final ReplicaCatalogConstants replicaCatalogConstants = ReplicaCatalogConstants.DEFAULT;
     private static final ParameterConstants parameterConstants = ParameterConstants.DEFAULT;
+    private static final String inputPath = "config/dax/";
     private static final SchedulingResult schedulingResult = new SchedulingResult();
 
     public static void main(String[] args) {
         System.out.println("Starting the Simulation...");
         try {
             UserInput userInput = new UserInput();
-            userInput.readSimulationInput();
+            userInput.readSimulationInput(inputPath);
             HostEnvironment hostEnvironment = new HostEnvironment(userInput);
             for (String dagPath : userInput.getDagPaths()) {
                 for (String algorithmName : userInput.getAlgorithmNames()) {
