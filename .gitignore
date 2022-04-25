@@ -4,8 +4,9 @@
 # Log file
 *.log
 
-# scheduling result files
-./results
+# scheduling input and result files
+./results/scheduling-results
+./config
 
 # BlueJ files
 *.ctxt
