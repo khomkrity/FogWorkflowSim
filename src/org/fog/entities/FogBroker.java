@@ -38,7 +38,7 @@ public class FogBroker extends PowerDatacenterBroker {
     public static int initIndexForGA = 0;
     public static int tempChildrenIndex = 0;
     public static double totalDelay;
-    public static List<Integer> jobArrivalOrders;
+    private static List<Integer> jobSubmissionOrders;
 
     /**
      * Created a new WorkflowScheduler object.
@@ -52,7 +52,7 @@ public class FogBroker extends PowerDatacenterBroker {
     public FogBroker(String name) throws Exception {
         super(name);
         List<CondorVM> scheduledVmList = new ArrayList<>();
-        jobArrivalOrders = new ArrayList<>();
+        jobSubmissionOrders = new ArrayList<>();
         totalDelay = 0.0;
     }
 
@@ -267,11 +267,10 @@ public class FogBroker extends PowerDatacenterBroker {
      */
     protected void processCloudletUpdate(SimEvent ev) {
         BaseSchedulingAlgorithm scheduler = getScheduler(Parameters.getSchedulingAlgorithm());
-        List<Cloudlet> cloudlets = getCloudletList();
-        if (!Parameters.getPlanningAlgorithm().equals(Parameters.PlanningAlgorithm.INVALID)) {
-            cloudlets = getOrderedCloudletsFromPlanningAlgorithm(cloudlets);
-        }
-        scheduler.setCloudletList(cloudlets);
+//        if (!Parameters.getPlanningAlgorithm().equals(Parameters.PlanningAlgorithm.INVALID)) {
+//            cloudlets = getOrderedCloudletsFromPlanningAlgorithm(cloudlets);
+//        }
+        scheduler.setCloudletList(getCloudletList());
         List<? extends Vm> vmlist = getVmsCreatedList();
         Collections.reverse(vmlist);
         scheduler.setVmList((List<CondorVM>) vmlist);
@@ -288,7 +287,7 @@ public class FogBroker extends PowerDatacenterBroker {
         List<Cloudlet> scheduledList = scheduler.getScheduledList();
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
-            jobArrivalOrders.add(cloudlet.getCloudletId());
+            getJobSubmissionOrders().add(cloudlet.getCloudletId());
             double delay = 0;
             totalDelay += delay;
             if (Parameters.getOverheadParams().getQueueDelay() != null) {
@@ -685,5 +684,9 @@ public class FogBroker extends PowerDatacenterBroker {
                 list.add(cvm);
         }
         return list;
+    }
+
+    public static List<Integer> getJobSubmissionOrders() {
+        return jobSubmissionOrders;
     }
 }
