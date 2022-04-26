@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2012-2013 University Of Southern California
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -15,8 +15,6 @@
  */
 package org.workflowsim;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEntity;
@@ -28,6 +26,9 @@ import org.workflowsim.planning.RandomPlanningAlgorithm;
 import org.workflowsim.utils.Parameters;
 import org.workflowsim.utils.Parameters.PlanningAlgorithm;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * WorkflowPlanner supports dynamic planning. In the future we will have global
  * and static algorithm here. The WorkflowSim starts from WorkflowPlanner. It
@@ -35,33 +36,31 @@ import org.workflowsim.utils.Parameters.PlanningAlgorithm;
  *
  * @author Weiwei Chen
  * @since WorkflowSim Toolkit 1.0
- * @date Apr 9, 2013
- *
+ * @since Apr 9, 2013
  */
 public final class WorkflowPlanner extends SimEntity {
 
     /**
      * The task list.
      */
-    protected List< Task> taskList;
+    private List<Task> taskList;
     /**
      * The workflow parser.
      */
-    protected WorkflowParser parser;
+    private final WorkflowParser parser;
     /**
      * The associated clustering engine.
      */
-    private int clusteringEngineId;
-    private ClusteringEngine clusteringEngine;
+    private final int clusteringEngineId;
+    private final ClusteringEngine clusteringEngine;
 
     /**
      * Created a new WorkflowPlanner object.
      *
      * @param name name to be associated with this entity (as required by
-     * Sim_entity class from simjava package)
+     *             Sim_entity class from sim java package)
      * @throws Exception the exception
      * @pre name != null
-     * @post $none
      */
     public WorkflowPlanner(String name) throws Exception {
         this(name, 1);
@@ -127,25 +126,20 @@ public final class WorkflowPlanner extends SimEntity {
      *
      * @param ev a SimEvent object
      * @pre ev != null
-     * @post $none
      */
     @Override
     public void processEvent(SimEvent ev) {
         switch (ev.getTag()) {
-            case WorkflowSimTags.START_SIMULATION:
+            case WorkflowSimTags.START_SIMULATION -> {
                 getWorkflowParser().parse();
                 setTaskList(getWorkflowParser().getTaskList());
                 processPlanning();
                 processImpactFactors(getTaskList());
                 sendNow(getClusteringEngineId(), WorkflowSimTags.JOB_SUBMIT, getTaskList());
-                break;
-            case CloudSimTags.END_OF_SIMULATION:
-                shutdownEntity();
-                break;
+            }
+            case CloudSimTags.END_OF_SIMULATION -> shutdownEntity();
             // other unknown tags are processed by this method
-            default:
-                processOtherEvent(ev);
-                break;
+            default -> processOtherEvent(ev);
         }
     }
 
@@ -154,7 +148,7 @@ public final class WorkflowPlanner extends SimEntity {
             return;
         }
         BasePlanningAlgorithm planner = getPlanningAlgorithm(Parameters.getPlanningAlgorithm());
-        
+
         planner.setTaskList(getTaskList());
         planner.setVmList(getWorkflowEngine().getAllVmList());
         try {
@@ -166,41 +160,28 @@ public final class WorkflowPlanner extends SimEntity {
     }
 
     /**
-     * Switch between multiple planners. Based on planner.method
+     * Switch between multiple planners. Based on planner. Method
      *
      * @param name the SCHMethod name
      * @return the scheduler that extends BaseScheduler
      */
     private BasePlanningAlgorithm getPlanningAlgorithm(PlanningAlgorithm name) {
-        BasePlanningAlgorithm planner;
 
-        
-        // choose which scheduler to use. Make sure you have add related enum in
+
+        // choose which scheduler to use. Make sure you have added related enum in
         //Parameters.java
-        switch (name) {
-            //by default it is FCFS_SCH
-            case INVALID:
-                planner = null;
-                break;
-            case RANDOM:
-                planner = new RandomPlanningAlgorithm();
-                break;
-            case HEFT:
-                planner = new HEFTPlanningAlgorithm();
-                break;
-            case DHEFT:
-                planner = new DHEFTPlanningAlgorithm();
-                break;
-            default:
-                planner = null;
-                break;
-        }
-        return planner;
+        return switch (name) {
+            //by default, it is FCFS_SCH
+            case INVALID -> null;
+            case RANDOM -> new RandomPlanningAlgorithm();
+            case HEFT -> new HEFTPlanningAlgorithm();
+            case DHEFT -> new DHEFTPlanningAlgorithm();
+        };
     }
 
     /**
      * Add impact factor for each task. This is useful in task balanced
-     * clustering algorithm It is for research purpose and thus it is optional.
+     * clustering algorithm It is for research purpose, and thus it is optional.
      *
      * @param taskList all the tasks
      */
@@ -220,7 +201,7 @@ public final class WorkflowPlanner extends SimEntity {
     /**
      * Add impact factor for one particular task
      *
-     * @param task, the task
+     * @param task,  the task
      * @param impact , the impact factor
      */
     private void addImpact(Task task, double impact) {
@@ -237,13 +218,12 @@ public final class WorkflowPlanner extends SimEntity {
 
     /**
      * Overrides this method when making a new and different type of Broker.
-     * This method is called by {@link #body()} for incoming unknown tags.
+     * This method is called by {@link #SimEntity} for incoming unknown tags.
      *
      * @param ev a SimEvent object
      * @pre ev != null
-     * @post $none
      */
-    protected void processOtherEvent(SimEvent ev) {
+    private void processOtherEvent(SimEvent ev) {
         if (ev == null) {
             Log.printLine(getName() + ".processOtherEvent(): " + "Error - an event is null.");
             return;
@@ -257,9 +237,8 @@ public final class WorkflowPlanner extends SimEntity {
      * Send an internal event communicating the end of the simulation.
      *
      * @pre $none
-     * @post $none
      */
-    protected void finishExecution() {
+    private void finishExecution() {
         //sendNow(getId(), CloudSimTags.END_OF_SIMULATION);
     }
 
@@ -288,17 +267,16 @@ public final class WorkflowPlanner extends SimEntity {
      *
      * @return the task list
      */
-    @SuppressWarnings("unchecked")
     public List<Task> getTaskList() {
-        return (List<Task>) taskList;
+        return taskList;
     }
 
     /**
      * Sets the task list.
      *
-     * @param taskList
+     * @param taskList tasks
      */
-    protected void setTaskList(List<Task> taskList) {
+    private void setTaskList(List<Task> taskList) {
         this.taskList = taskList;
     }
 }
