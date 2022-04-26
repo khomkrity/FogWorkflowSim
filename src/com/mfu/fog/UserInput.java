@@ -9,7 +9,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-class UserInput {
+public class UserInput {
 
     private int numberOfCloud;
     private int numberOfFog;
@@ -20,17 +20,15 @@ class UserInput {
     private final Map<String, List<Double>> hostCosts;
     private List<String> dagPaths;
 
-    UserInput() {
+    public UserInput() {
         hostMips = new HashMap<>();
         hostCosts = new HashMap<>();
         algorithmNames = new ArrayList<>(List.of("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "HEFT"));
     }
 
-    public void readSimulationInput(String inputPath) throws FileNotFoundException {
-        Scanner scanner = new Scanner(System.in);
+    public void readSimulationInput(Scanner scanner) throws FileNotFoundException {
         readEnvironmentSetting(scanner);
         readPortConstraint(scanner);
-        readDagPaths(inputPath);
         scanner.close();
     }
 
@@ -91,14 +89,15 @@ class UserInput {
         getHostCosts().put(hostName, costs);
     }
 
-    private void readDagPaths(String inputPath) throws FileNotFoundException {
+    public void readDagPaths(String inputPath) throws FileNotFoundException {
         List<String> dagPaths = new ArrayList<>();
         File dagFolder = new File(inputPath);
         File[] dagFiles = dagFolder.listFiles();
         assert dagFiles != null;
         for (File dagFile : dagFiles) {
-            if (dagFile.getPath().contains(".xml")) {
-                dagPaths.add(dagFile.getPath());
+            String path = dagFile.getPath();
+            if (path.substring(path.lastIndexOf(".")).equals(".xml")) {
+                dagPaths.add(path);
             }
         }
         if (dagPaths.isEmpty())
