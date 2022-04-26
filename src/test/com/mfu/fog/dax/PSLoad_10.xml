@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Pan-STARRS database loading workflow (Figure 13 in Ramakrishnan and 
+	Gannon) -->
+<adag name="psload" jobCount="10" fileCount="0" childCount="8">
+	<job id="preprocess1" namespace="psload" name="Preprocess"
+		runtime="5" cores="1">
+		<uses file="preprocess1_in.dat" link="input" size="100000" />
+		<uses file="load1_in.dat" link="output" size="100000" />
+	</job>
+
+	<job id="preprocess2" namespace="psload" name="Preprocess"
+		runtime="5" cores="1" delay="2">
+		<uses file="preprocess2_in.dat" link="input" size="100000" />
+		<uses file="load2_in.dat" link="output" size="100000" />
+	</job>
+
+	<job id="load1.1" namespace="psload" name="Load" runtime="10"
+		cores="1">
+		<uses file="load1_in.dat" link="input" size="100000" />
+		<uses file="load1.1_out.dat" link="output" size="100000" />
+	</job>
+
+	<job id="load1.2" namespace="psload" name="Load" runtime="10"
+		cores="1">
+		<uses file="load1_in.dat" link="input" size="100000" />
+		<uses file="load1.2_out.dat" link="output" size="100000" />
+	</job>
+
+	<job id="load2.1" namespace="psload" name="Load" runtime="10"
+		cores="1">
+		<uses file="load2_in.dat" link="input" size="100000" />
+		<uses file="load2.1_out.dat" link="output" size="100000" />
+	</job>
+
+	<job id="load2.2" namespace="psload" name="Load" runtime="10"
+		cores="1">
+		<uses file="load2_in.dat" link="input" size="100000" />
+		<uses file="load2.2_out.dat" link="output" size="100000" />
+	</job>
+
+	<job id="load2.3" namespace="psload" name="Load" runtime="10"
+		cores="1">
+		<uses file="load2_in.dat" link="input" size="100000" />
+		<uses file="load2.3_out.dat" link="output" size="100000" />
+	</job>
+
+	<job id="validate1" namespace="psload" name="Validate" runtime="5"
+		cores="1">
+		<uses file="load1.1_out.dat" link="input" size="100000" />
+		<uses file="load1.2_out.dat" link="input" size="100000" />
+		<uses file="validate1_out.dat" link="output" size="900000" />
+	</job>
+
+	<job id="validate2" namespace="psload" name="Validate" runtime="5"
+		cores="1">
+		<uses file="load2.1_out.dat" link="input" size="100000" />
+		<uses file="load2.2_out.dat" link="input" size="100000" />
+		<uses file="load2.3_out.dat" link="input" size="100000" />
+		<uses file="validate2_out.dat" link="output" size="1000000" />
+	</job>
+
+	<job id="postprocess" namespace="psload" name="Postprocess" runtime="10" cores="1">
+		<uses file="validate1_out.dat" link="input" size="900000" />
+		<uses file="validate2_out.dat" link="input" size="1000000" />
+		<uses file="result.dat" link="output" size="1000000" />
+	</job>
+
+	<child ref="load1.1">
+		<parent ref="preprocess1" delay="2"/>
+	</child>
+	<child ref="load1.2">
+		<parent ref="preprocess1" delay="3"/>
+	</child>
+	<child ref="load2.1">
+		<parent ref="preprocess2" delay="3"/>
+	</child>
+	<child ref="load2.2">
+		<parent ref="preprocess2" delay="4"/>
+	</child>
+	<child ref="load2.3">
+		<parent ref="preprocess2" delay="5"/>
+	</child>
+	<child ref="validate1">
+		<parent ref="load1.1" delay="6"/>
+		<parent ref="load1.2" delay="7"/>
+	</child>
+	<child ref="validate2">
+		<parent ref="load2.1" delay="6"/>
+		<parent ref="load2.2" delay="7"/>
+		<parent ref="load2.3" delay="8"/>
+	</child>
+	<child ref="postprocess">
+		<parent ref="validate1" delay="5"/>
+		<parent ref="validate2" delay="5"/>
+	</child>
+
+</adag>
