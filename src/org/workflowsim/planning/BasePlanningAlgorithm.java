@@ -18,7 +18,7 @@ package org.workflowsim.planning;
 import java.util.ArrayList;
 import java.util.List;
 import org.cloudbus.cloudsim.Datacenter;
-import org.cloudbus.cloudsim.Vm;
+import org.workflowsim.CondorVM;
 import org.workflowsim.Task;
 
 /**
@@ -34,11 +34,11 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
     /**
      * the task list.
      */
-    private List<Task> tasktList;
+    private List<Task> taskList;
     /**
      * the vm list.
      */
-    private List<? extends Vm> vmList;
+    private List<CondorVM> vmList;
 
     private static List<Integer> taskOrders;
 
@@ -67,7 +67,7 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
      */
     @Override
     public void setTaskList(List list) {
-        this.tasktList = list;
+        this.taskList = list;
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
      */
     @Override
     public List<Task> getTaskList() {
-        return this.tasktList;
+        return this.taskList;
     }
 
     /**
@@ -96,7 +96,7 @@ public abstract class BasePlanningAlgorithm implements PlanningAlgorithmInterfac
      * @return the vm list
      */
     @Override
-    public List getVmList() {
+    public List<CondorVM> getVmList() {
         return this.vmList;
     }
 

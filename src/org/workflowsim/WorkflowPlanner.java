@@ -19,10 +19,7 @@ import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.core.SimEvent;
-import org.workflowsim.planning.BasePlanningAlgorithm;
-import org.workflowsim.planning.DHEFTPlanningAlgorithm;
-import org.workflowsim.planning.HEFTPlanningAlgorithm;
-import org.workflowsim.planning.RandomPlanningAlgorithm;
+import org.workflowsim.planning.*;
 import org.workflowsim.utils.Parameters;
 import org.workflowsim.utils.Parameters.PlanningAlgorithm;
 
@@ -166,16 +163,14 @@ public final class WorkflowPlanner extends SimEntity {
      * @return the scheduler that extends BaseScheduler
      */
     private BasePlanningAlgorithm getPlanningAlgorithm(PlanningAlgorithm name) {
-
-
         // choose which scheduler to use. Make sure you have added related enum in
         //Parameters.java
         return switch (name) {
-            //by default, it is FCFS_SCH
             case INVALID -> null;
             case RANDOM -> new RandomPlanningAlgorithm();
             case HEFT -> new HEFTPlanningAlgorithm();
             case DHEFT -> new DHEFTPlanningAlgorithm();
+            case OCS -> new OCSPlanningAlgorithm();
         };
     }
 

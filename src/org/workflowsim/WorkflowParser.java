@@ -15,6 +15,7 @@
  */
 package org.workflowsim;
 
+import com.mfu.fog.UserInput;
 import org.cloudbus.cloudsim.Log;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -215,6 +216,8 @@ public final class WorkflowParser {
                             task = new Task(this.jobIdStartsFrom, cloudletLength);
                             this.jobIdStartsFrom++;
                         }
+                        task.setSendingLatency(UserInput.getPortDelay());
+                        task.setReceivingLatency(UserInput.getPortDelay());
                         task.setType(nodeType);
                         task.setUserId(userId);
                         taskByName.put(nodeName, task);
@@ -233,14 +236,19 @@ public final class WorkflowParser {
                         String childName = element.getAttributeValue("ref");
                         if (taskByName.containsKey(childName)) {
                             Task childTask = taskByName.get(childName);
+                            Map<Integer, Double> transferCosts = new HashMap<>();
                             for (Element parentNodeElement : parentNodeElements) {
                                 String parentName = parentNodeElement.getAttributeValue("ref");
+                                String transferCostAttribute = parentNodeElement.getAttributeValue("transferCost");
+                                double transferCost = transferCostAttribute != null ? Double.parseDouble(transferCostAttribute) : 0;
                                 if (taskByName.containsKey(parentName)) {
                                     Task parentTask = taskByName.get(parentName);
+                                    transferCosts.put(parentTask.getCloudletId(), transferCost);
                                     parentTask.addChild(childTask);
                                     childTask.addParent(parentTask);
                                 }
                             }
+                            childTask.setTransferCosts(transferCosts);
                         }
                     }
                 }
