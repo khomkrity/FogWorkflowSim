@@ -1,5 +1,6 @@
 package org.workflowsim.planning;
 
+import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Log;
 import org.workflowsim.CondorVM;
 import org.workflowsim.Event;
@@ -19,6 +20,7 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
     private double averageBandwidth;
 
     private List<List<Task>> paths;
+    private List<Pair<List<Task>, Double>> pairs = new ArrayList<>();
     private List<Task> criticalPath;
     private final Set<Double> eventTimes;
     private Set<Task> scheduledTasks;
@@ -180,17 +182,15 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
             for (Task parent : task.getParentList()) {
                 findAncestors(parent);
             }
-//            System.out.println(task);
-//            estimateSchedulingTime(task, true);
-            if(isReadyToFindTaskPermutation(siblings)){
+            if (isReadyToFindTaskPermutation(siblings)) {
                 estimateTaskPermutationSchedulingTime(siblings);
-            }else{
+            } else {
                 estimateSchedulingTime(task, true);
             }
         }
     }
 
-    private void estimateTaskPermutationSchedulingTime(List<Task> siblings){
+    private void estimateTaskPermutationSchedulingTime(List<Task> siblings) {
         List<List<Task>> taskPermutation = findTaskPermutation(siblings);
         List<Task> minTaskArrangement = new ArrayList<>();
         double estimatedFinishTime;
