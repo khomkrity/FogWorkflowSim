@@ -8,10 +8,7 @@ import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEvent;
 import org.cloudbus.cloudsim.lists.VmList;
 import org.cloudbus.cloudsim.power.PowerDatacenterBroker;
-import org.workflowsim.CondorVM;
-import org.workflowsim.Job;
-import org.workflowsim.WorkflowEngine;
-import org.workflowsim.WorkflowSimTags;
+import org.workflowsim.*;
 import org.workflowsim.failure.FailureGenerator;
 import org.workflowsim.planning.BasePlanningAlgorithm;
 import org.workflowsim.scheduling.*;
@@ -47,7 +44,6 @@ public class FogBroker extends PowerDatacenterBroker {
      *             class from simjava package)
      * @throws Exception the exception
      * @pre name != null
-     * @post $none
      */
     public FogBroker(String name) throws Exception {
         super(name);
@@ -86,8 +82,6 @@ public class FogBroker extends PowerDatacenterBroker {
      */
     @Override
     public void processEvent(SimEvent ev) {
-//    	if(CloudSim.clock()>40)
-//    	System.out.println(CloudSim.clock()+":"+CloudSim.getEntityName(ev.getSource())+"-> FogScheduler = "+ev.getTag());
         switch (ev.getTag()) {
             // Resource characteristics request
             case CloudSimTags.RESOURCE_CHARACTERISTICS_REQUEST:
@@ -137,7 +131,6 @@ public class FogBroker extends PowerDatacenterBroker {
                         }
                         if (WorkflowEngine.findBestSchedule == 1)
                             processCloudletUpdateForGABest(ev);
-
                         break;
                     case MINMIN:
                     case MAXMIN:
@@ -148,7 +141,6 @@ public class FogBroker extends PowerDatacenterBroker {
                     case ROUNDROBIN:
                         processCloudletUpdate(ev);
                         break;
-
                     default:
                         break;
                 }
@@ -171,10 +163,6 @@ public class FogBroker extends PowerDatacenterBroker {
         for (int datacenterId : this.datacenterIdsList) {
             schedule(datacenterId, 0, CloudSimTags.CLEAR, null);
         }
-        // schedule(2, 0, CloudSimTags.CLEAR, null);
-        // schedule(3, 0, CloudSimTags.CLEAR, null);
-        // schedule(4, 0, CloudSimTags.CLEAR, null);
-
     }
 
     /**
@@ -267,10 +255,12 @@ public class FogBroker extends PowerDatacenterBroker {
      */
     protected void processCloudletUpdate(SimEvent ev) {
         BaseSchedulingAlgorithm scheduler = getScheduler(Parameters.getSchedulingAlgorithm());
-//        if (!Parameters.getPlanningAlgorithm().equals(Parameters.PlanningAlgorithm.INVALID)) {
-//            cloudlets = getOrderedCloudletsFromPlanningAlgorithm(cloudlets);
-//        }
-        scheduler.setCloudletList(getCloudletList());
+        List<Cloudlet> cloudlets = getCloudletList();
+        if (!Parameters.getPlanningAlgorithm().equals(Parameters.PlanningAlgorithm.INVALID)
+                && Parameters.getSchedulingAlgorithm().equals(SchedulingAlgorithm.STATIC)) {
+            cloudlets = getOrderedCloudletsFromPlanningAlgorithm(cloudlets);
+        }
+        scheduler.setCloudletList(cloudlets);
         List<? extends Vm> vmlist = getVmsCreatedList();
         Collections.reverse(vmlist);
         scheduler.setVmList((List<CondorVM>) vmlist);
@@ -281,27 +271,15 @@ public class FogBroker extends PowerDatacenterBroker {
             Log.printLine("Error in configuring scheduler_method");
             e.printStackTrace();
         }
-
-        WorkflowEngine wfEngine = (WorkflowEngine) CloudSim.getEntity(workflowEngineId);
-        Controller controller = wfEngine.getController();
         List<Cloudlet> scheduledList = scheduler.getScheduledList();
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
             getJobSubmissionOrders().add(cloudlet.getCloudletId());
-            double delay = 0;
+            double delay = getDelayFromTransferCost((Task) cloudlet);
             totalDelay += delay;
             if (Parameters.getOverheadParams().getQueueDelay() != null) {
                 delay = Parameters.getOverheadParams().getQueueDelay(cloudlet);
             }
-
-//            Job job = (Job) cloudlet;
-//            if(job.getoffloading() != controller.getmobile().getId()){
-//            	if(job.getoffloading() != controller.getcloud().getId())
-//            		delay = job.getInputsize() / controller.parameter / controller.WAN_Bandwidth;
-//            	else
-//            		delay = job.getInputsize() / controller.parameter / controller.LAN_Bandwidth;
-//            }
-//            System.out.println(cloudlet.getCloudletId()+".submit delay : "+delay);
             schedule(getVmsToDatacentersMap().get(vmId), delay, CloudSimTags.CLOUDLET_SUBMIT, cloudlet);
         }
         getCloudletList().removeAll(scheduledList);
@@ -343,12 +321,12 @@ public class FogBroker extends PowerDatacenterBroker {
         }
         List<Cloudlet> scheduledList = new ArrayList<>();
         List<int[]> schedules = PsoScheduling.schedules;
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = schedules.get(count)[cloudletId];
-            cloudletList.get(i).setVmId(vmId);
+            value.setVmId(vmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -356,12 +334,8 @@ public class FogBroker extends PowerDatacenterBroker {
             if (Parameters.getOverheadParams().getQueueDelay() != null) {
                 delay = Parameters.getOverheadParams().getQueueDelay(cloudlet);
             }
-            // System.out.println("delay:"+delay);
-            // System.out.println("FogBroker.processCloudletUpdateForPSOInit提交给"+getVmsToDatacentersMap().get(vmId)+"号数据中心"+vmId+"号虚拟机的任务："+cloudlet.getCloudletId());
-
             schedule(getVmsToDatacentersMap().get(vmId), delay, CloudSimTags.CLOUDLET_SUBMIT, cloudlet);
         }
-        // 把Cloudlets交由数据中心处理以后，从CloudletList中移除这些任务，并向CloudletSubmittedList中添加这些任务
         getCloudletList().removeAll(scheduledList);
         getCloudletSubmittedList().addAll(scheduledList);
         cloudletsSubmitted += scheduledList.size();
@@ -373,14 +347,14 @@ public class FogBroker extends PowerDatacenterBroker {
         if (WorkflowEngine.updateFlag2 == 1 && cloudletList.size() != 0) {
             PsoScheduling.updateParticles();
         }
-        List<Cloudlet> scheduledList = new ArrayList<Cloudlet>();
+        List<Cloudlet> scheduledList = new ArrayList<>();
         List<int[]> newSchedules = PsoScheduling.newSchedules;
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = newSchedules.get(count2)[cloudletId];
-            cloudletList.get(i).setVmId(vmId);
+            value.setVmId(vmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -400,12 +374,12 @@ public class FogBroker extends PowerDatacenterBroker {
         List<Cloudlet> cloudletList = getCloudletList();
         List<CondorVM> vmList = getVmsCreatedList();
         List<Cloudlet> scheduledList = new ArrayList<>();
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = PsoScheduling.gbest_schedule[cloudletId];
-            cloudletList.get(i).setVmId(vmId);
+            value.setVmId(vmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -429,15 +403,15 @@ public class FogBroker extends PowerDatacenterBroker {
             WorkflowEngine engine = (WorkflowEngine) CloudSim.getEntity(workflowEngineId);
             GASchedulingAlgorithm.initPopsRandomly(WorkflowEngine.jobList.size(), getVmList().size());
         }
-        List<Cloudlet> scheduledList = new ArrayList<Cloudlet>();
+        List<Cloudlet> scheduledList = new ArrayList<>();
         List<int[]> schedules = GASchedulingAlgorithm.schedules;
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = schedules.get(initIndexForGA)[cloudletId];
-            int scheduledVmId = ChooseVm(cloudletList.get(i), vmId);
-            cloudletList.get(i).setVmId(scheduledVmId);
+            int scheduledVmId = ChooseVm(value, vmId);
+            value.setVmId(scheduledVmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -459,15 +433,15 @@ public class FogBroker extends PowerDatacenterBroker {
         if (WorkflowEngine.gaFlag2 == 0 && cloudletList.size() != 0) {
             GASchedulingAlgorithm.GA();
         }
-        List<Cloudlet> scheduledList = new ArrayList<Cloudlet>();
+        List<Cloudlet> scheduledList = new ArrayList<>();
         List<int[]> schedules = GASchedulingAlgorithm.tempChildren;
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = schedules.get(tempChildrenIndex)[cloudletId];
-            int scheduledVmId = ChooseVm(cloudletList.get(i), vmId);
-            cloudletList.get(i).setVmId(scheduledVmId);
+            int scheduledVmId = ChooseVm(value, vmId);
+            value.setVmId(scheduledVmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -487,13 +461,13 @@ public class FogBroker extends PowerDatacenterBroker {
         List<Cloudlet> cloudletList = getCloudletList();
         List<CondorVM> vmList = getVmsCreatedList();
         List<Cloudlet> scheduledList = new ArrayList<Cloudlet>();
-        for (int i = 0; i < cloudletList.size(); i++) {
-            int cloudletId = cloudletList.get(i).getCloudletId();
+        for (Cloudlet value : cloudletList) {
+            int cloudletId = value.getCloudletId();
             int vmId = GASchedulingAlgorithm.gbestSchedule[cloudletId];
-            int scheduledVmId = ChooseVm(cloudletList.get(i), vmId);
-            cloudletList.get(i).setVmId(scheduledVmId);
+            int scheduledVmId = ChooseVm(value, vmId);
+            value.setVmId(scheduledVmId);
             // setVmState(vmId);
-            scheduledList.add(cloudletList.get(i));
+            scheduledList.add(value);
         }
         for (Cloudlet cloudlet : scheduledList) {
             int vmId = cloudlet.getVmId();
@@ -514,7 +488,6 @@ public class FogBroker extends PowerDatacenterBroker {
      *
      * @param ev a SimEvent object
      * @pre ev != $null
-     * @post $none
      */
     @Override
     protected void processCloudletReturn(SimEvent ev) {
@@ -522,7 +495,7 @@ public class FogBroker extends PowerDatacenterBroker {
         Job job = (Job) cloudlet;
         // double delay = getCloudletDelay(getCloudletReceivedList(), cloudlet);
         double delay = 0;
-        /**
+        /*
          * Generate a failure if failure rate is not zeros.
          */
         FailureGenerator.generate(job);
@@ -598,6 +571,11 @@ public class FogBroker extends PowerDatacenterBroker {
      */
     protected void processCloudletSubmit(SimEvent ev) {
         List<Job> jobs = (List) ev.getData();
+        for(Job job : jobs){
+            job.setTransferCosts(job.getTaskList().get(0).getTransferCosts());
+            job.setSendingLatency(job.getTaskList().get(0).getSendingLatency());
+            job.setReceivingLatency(job.getTaskList().get(0).getReceivingLatency());
+        }
         getCloudletList().addAll(jobs);
         sendNow(this.getId(), WorkflowSimTags.CLOUDLET_UPDATE);
         if (!processCloudletSubmitHasShown) {
@@ -644,7 +622,6 @@ public class FogBroker extends PowerDatacenterBroker {
         int chooseVmId = -1;
         Job job = (Job) cloudlet;
         if (job.getoffloading() == -1) {
-//    		Log.printLine("没有进行卸载决策");
             return vmId;
         } else {
             for (Vm vm : getVmList()) {
@@ -654,12 +631,10 @@ public class FogBroker extends PowerDatacenterBroker {
             }
             for (Vm vm : list) {
                 if (vmId == vm.getId()) {
-                    // Log.printLine("GA----job"+job.getCloudletId()+":"+vmId+"=>"+CloudSim.getEntityName(job.getoffloading())+":"+vmId);
                     return vmId;
                 }
             }
             chooseVmId = list.get(0).getId() + vmId % list.size();
-//    		System.out.println("GA----job"+job.getCloudletId()+":"+vmId+"=>"+CloudSim.getEntityName(job.getoffloading())+":"+chooseVmId);
         }
         list.clear();
         return chooseVmId;
@@ -684,6 +659,21 @@ public class FogBroker extends PowerDatacenterBroker {
                 list.add(cvm);
         }
         return list;
+    }
+
+    private double getDelayFromTransferCost(Task child) {
+        if(child.getTransferCosts().isEmpty()) return 0;
+        double latestFinishTime = 0;
+        double minReadyTime = 0;
+        for (Task parent : child.getParentList()) {
+            double readyTime = parent.getFinishTime();
+            latestFinishTime = Math.max(latestFinishTime, readyTime);
+            if (parent.getVmId() != child.getVmId()) {
+                readyTime += child.getTransferCosts().get(parent.getCloudletId());
+            }
+            minReadyTime = Math.max(minReadyTime, readyTime);
+        }
+        return minReadyTime - latestFinishTime;
     }
 
     public static List<Integer> getJobSubmissionOrders() {

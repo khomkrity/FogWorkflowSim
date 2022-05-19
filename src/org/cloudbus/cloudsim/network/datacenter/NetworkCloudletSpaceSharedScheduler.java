@@ -105,7 +105,6 @@ public class NetworkCloudletSpaceSharedScheduler extends CloudletScheduler {
 		for (ResCloudlet rcl : getCloudletExecList()) { // each machine in the
 			// exec list has the
 			// same amount of cpu
-
 			NetworkCloudlet cl = (NetworkCloudlet) rcl.getCloudlet();
 
 			// check status

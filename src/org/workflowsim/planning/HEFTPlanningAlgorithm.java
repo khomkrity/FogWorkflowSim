@@ -17,9 +17,7 @@ package org.workflowsim.planning;
 
 import org.cloudbus.cloudsim.Consts;
 import org.cloudbus.cloudsim.Log;
-import org.workflowsim.CondorVM;
-import org.workflowsim.FileItem;
-import org.workflowsim.Task;
+import org.workflowsim.*;
 import org.workflowsim.utils.Parameters;
 
 import java.util.*;
@@ -40,51 +38,12 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
     private final Map<Task, Double> earliestFinishTimes;
     private double averageBandwidth;
 
-    private static class Event implements Comparable<Event> {
-
-        public Double startTime;
-        public Double finishTime;
-        public Task task;
-
-        public Event(Double startTime, Double finishTime) {
-            this.startTime = startTime;
-            this.finishTime = finishTime;
-        }
-
-        public Event(Task task, Double startTime, Double finishTime) {
-            this.task = task;
-            this.startTime = startTime;
-            this.finishTime = finishTime;
-        }
-
-        @Override
-        public int compareTo(Event o) {
-            return startTime.compareTo(o.startTime);
-        }
-    }
-
-    private static class TaskRank implements Comparable<TaskRank> {
-
-        public Task task;
-        public Double rank;
-
-        public TaskRank(Task task, Double rank) {
-            this.task = task;
-            this.rank = rank;
-        }
-
-        @Override
-        public int compareTo(TaskRank o) {
-            return o.rank.compareTo(rank);
-        }
-    }
-
     public HEFTPlanningAlgorithm() {
-        computationCosts = new HashMap<>();
-        transferCosts = new HashMap<>();
-        rank = new HashMap<>();
-        earliestFinishTimes = new HashMap<>();
-        schedules = new HashMap<>();
+        computationCosts = new LinkedHashMap<>();
+        transferCosts = new LinkedHashMap<>();
+        rank = new LinkedHashMap<>();
+        earliestFinishTimes = new LinkedHashMap<>();
+        schedules = new LinkedHashMap<>();
     }
 
     /**
@@ -96,8 +55,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
         averageBandwidth = calculateAverageBandwidth();
 
-        for (Object vmObject : getVmList()) {
-            CondorVM vm = (CondorVM) vmObject;
+        for (CondorVM vm : getVmList()) {
             schedules.put(vm, new ArrayList<>());
         }
 
@@ -109,23 +67,23 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
         // Selection phase
         allocateTasks();
 
+        // set task orders for later simulation
         setTaskOrders(taskOrders);
         // result
         print();
     }
 
     /**
-     * Calculates the average available bandwidth among all VMs in Mbit/s
+     * Calculates the average available bandwidth among all VMs in Megabit/s
      *
-     * @return Average available bandwidth in Mbit/s
+     * @return Average available bandwidth in Megabit/s
      */
     private double calculateAverageBandwidth() {
-        double avg = 0.0;
-        for (Object vmObject : getVmList()) {
-            CondorVM vm = (CondorVM) vmObject;
-            avg += vm.getBw();
+        double averageBandwidth = 0.0;
+        for (CondorVM vm : getVmList()) {
+            averageBandwidth += vm.getBw();
         }
-        return avg / getVmList().size();
+        return averageBandwidth / getVmList().size();
     }
 
     /**
@@ -135,8 +93,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
     private void calculateComputationCosts() {
         for (Task task : getTaskList()) {
             Map<CondorVM, Double> costsVm = new HashMap<>();
-            for (Object vmObject : getVmList()) {
-                CondorVM vm = (CondorVM) vmObject;
+            for (CondorVM vm : getVmList()) {
                 if (vm.getNumberOfPes() < task.getNumberOfPes()) {
                     costsVm.put(vm, Double.MAX_VALUE);
                 } else {
@@ -164,9 +121,21 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
         // Calculating the actual values
         for (Task parent : getTaskList()) {
             for (Task child : parent.getChildList()) {
-                transferCosts.get(parent).put(child, calculateTransferCost(parent, child));
+                transferCosts.get(parent).put(child, calculateStaticTransferCost(parent, child));
             }
         }
+    }
+
+    /**
+     * Accounts the time in seconds necessary to transfer all files described
+     * between parent and child (as statically defined in DAG)
+     *
+     * @param parent parent task
+     * @param child  child task
+     * @return Transfer cost in seconds
+     */
+    private double calculateStaticTransferCost(Task parent, Task child) {
+        return child.getTransferCosts().isEmpty() ? 0 : child.getTransferCosts().get(parent.getCloudletId());
     }
 
     /**
@@ -177,7 +146,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
      * @param child  child task
      * @return Transfer cost in seconds
      */
-    private double calculateTransferCost(Task parent, Task child) {
+    private double calculateRealisticTransferCost(Task parent, Task child) {
         List<FileItem> parentFiles = parent.getFileList();
         List<FileItem> childFiles = child.getFileList();
 
@@ -263,7 +232,6 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
         for (TaskRank rank : taskRank) {
             allocateTask(rank.task);
         }
-
     }
 
     /**
@@ -279,10 +247,8 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
         double bestReadyTime = 0.1;
         double finishTime;
 
-        for (Object vmObject : getVmList()) {
-            CondorVM vm = (CondorVM) vmObject;
+        for (CondorVM vm : getVmList()) {
             double minReadyTime = 0.1;
-
             for (Task parent : task.getParentList()) {
                 double readyTime = earliestFinishTimes.get(parent);
                 if (parent.getVmId() != vm.getId()) {
@@ -365,7 +331,6 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
                     startTime = readyTime;
                     finishTime = readyTime + computationCost;
                 }
-
                 break;
             }
             if (previousEvent.finishTime + computationCost <= currentEvent.startTime) {
@@ -408,8 +373,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
     private void printVMSpec() {
         System.out.println("VM Specs:");
-        for (Object vmObject : getVmList()) {
-            CondorVM vm = (CondorVM) vmObject;
+        for (CondorVM vm : getVmList()) {
             System.out.print("VM ID: " + vm.getId() + " ");
             System.out.print("MIPS: " + vm.getMips() + " ");
             System.out.print("BW: " + vm.getBw() + " ");
@@ -443,7 +407,7 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
     }
 
     private void printTransferCosts() {
-        System.out.println("Calcualte Time Taken in Transfering Files from Each Parent to Childs");
+        System.out.println("Calculate Time Taken in Transferring Files from Each Parent to Children");
         for (Map.Entry<Task, Map<Task, Double>> parentTasks : transferCosts.entrySet()) {
             Task parentTask = parentTasks.getKey();
             int parentTaskId = parentTask.getCloudletId();
@@ -475,7 +439,6 @@ public class HEFTPlanningAlgorithm extends BasePlanningAlgorithm {
 
     private void printSchedules() {
         System.out.println("Scheduling Results (kind of) Grouped By VM");
-        // private Map<CondorVM, List<Event>> schedules;
         for (Map.Entry<CondorVM, List<Event>> schedule : schedules.entrySet()) {
             CondorVM vm = schedule.getKey();
             int vmId = vm.getId();

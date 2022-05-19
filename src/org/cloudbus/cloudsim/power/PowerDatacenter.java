@@ -44,7 +44,7 @@ public class PowerDatacenter extends Datacenter {
 	/** The disable migrations. */
 	private boolean disableMigrations;
 
-	/** The cloudlet submited. */
+	/** The cloudlet submitted. */
 	private double cloudletSubmitted;
 
 	/** The migration count. */
@@ -56,7 +56,6 @@ public class PowerDatacenter extends Datacenter {
 	 * @param name the name
 	 * @param characteristics the res config
 	 * @param schedulingInterval the scheduling interval
-	 * @param utilizationBound the utilization bound
 	 * @param vmAllocationPolicy the vm provisioner
 	 * @param storageList the storage list
 	 * @throws Exception the exception
@@ -125,7 +124,7 @@ public class PowerDatacenter extends Datacenter {
 						targetHost.addMigratingInVm(vm);
 						incrementMigrationCount();
 
-						/** VM migration delay = RAM / bandwidth **/
+						/* VM migration delay = RAM / bandwidth **/
 						// we use BW / 2 to model BW available for migration purposes, the other
 						// half of BW is for VM communication
 						// around 16 seconds for 1024 MB using 1 Gbit/s network
@@ -229,7 +228,7 @@ public class PowerDatacenter extends Datacenter {
 
 		checkCloudletCompletion();
 
-		/** Remove completed VMs **/
+		/* Remove completed VMs **/
 		
 		for (PowerHost host : this.<PowerHost> getHostList()) {
 			for (Vm vm : host.getCompletedVms()) {

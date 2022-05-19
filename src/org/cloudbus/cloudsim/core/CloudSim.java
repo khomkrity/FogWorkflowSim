@@ -29,7 +29,6 @@ import org.workflowsim.Job;
 import org.workflowsim.Task;
 import org.workflowsim.WorkflowSimTags;
 
-import com.mfu.fog.PortConstraint;
 
 /**
  * This class extends the CloudSimCore to enable network simulation in CloudSim.

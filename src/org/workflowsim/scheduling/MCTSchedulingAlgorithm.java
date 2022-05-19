@@ -32,18 +32,13 @@ public class MCTSchedulingAlgorithm extends BaseSchedulingAlgorithm {
     public MCTSchedulingAlgorithm() {
         super();
     }
-
     @Override
     public void run() {
-
-
         int size = getCloudletList().size();
-
         for (int i = 0; i < size; i++) {
             Cloudlet cloudlet = (Cloudlet) getCloudletList().get(i);
             int vmSize = getVmList().size();
             CondorVM firstIdleVm = null;
-
             for (int j = 0; j < vmSize; j++) {
                 CondorVM vm = (CondorVM) getVmList().get(j);
                 if (vm.getState() == WorkflowSimTags.VM_STATUS_IDLE) {
@@ -54,7 +49,6 @@ public class MCTSchedulingAlgorithm extends BaseSchedulingAlgorithm {
             if (firstIdleVm == null) {
                 break;
             }
-
             for (int j = 0; j < vmSize; j++) {
                 CondorVM vm = (CondorVM) getVmList().get(j);
                 if ((vm.getState() == WorkflowSimTags.VM_STATUS_IDLE)

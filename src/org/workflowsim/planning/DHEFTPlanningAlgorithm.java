@@ -16,6 +16,7 @@
 package org.workflowsim.planning;
 
 import org.cloudbus.cloudsim.Vm;
+import org.workflowsim.CondorVM;
 import org.workflowsim.FileItem;
 import org.workflowsim.Task;
 import org.workflowsim.utils.Parameters;
@@ -46,7 +47,7 @@ public class DHEFTPlanningAlgorithm extends BasePlanningAlgorithm {
     @Override
     public void run() {
 
-        List<Vm> vmList = getVmList();
+        List<CondorVM> vmList = getVmList();
         double[][] bandwidths = new double[vmList.size()][vmList.size()];
 
         for (int i = 0; i < vmList.size(); i++) {
