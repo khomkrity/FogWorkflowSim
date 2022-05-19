@@ -209,16 +209,6 @@ public class Cloudlet {
      */
     private UtilizationModel utilizationModelBw;
 
-    private double delay;
-
-    public double getDelay() {
-        return delay;
-    }
-
-    public void setDelay(double delay) {
-        this.delay = delay;
-    }
-
     // Data cloudlet
     /**
      * The required files.
@@ -256,7 +246,6 @@ public class Cloudlet {
         vmId = -1;
         accumulatedBwCost = 0.0;
         costPerBw = 0.0;
-
         requiredFiles = new LinkedList<>();
     }
 
