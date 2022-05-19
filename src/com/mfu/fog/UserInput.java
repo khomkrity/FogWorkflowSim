@@ -14,7 +14,7 @@ public class UserInput {
     private int numberOfCloud;
     private int numberOfFog;
     private int numberOfMobile;
-    private double portDelay;
+    private static double portDelay;
     private final List<String> algorithmNames;
     private final Map<String, List<Long>> hostMips;
     private final Map<String, List<Double>> hostCosts;
@@ -23,7 +23,8 @@ public class UserInput {
     public UserInput() {
         hostMips = new HashMap<>();
         hostCosts = new HashMap<>();
-        algorithmNames = new ArrayList<>(List.of("MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN", "HEFT"));
+        algorithmNames = new ArrayList<>(List.of("OCS"));
+        //"MINMIN", "MAXMIN", "FCFS", "ROUNDROBIN",
     }
 
     public void readSimulationInput(Scanner scanner) throws FileNotFoundException {
@@ -156,7 +157,7 @@ public class UserInput {
         return hostCosts;
     }
 
-    public double getPortDelay() {
+    public static double getPortDelay() {
         return portDelay;
     }
 

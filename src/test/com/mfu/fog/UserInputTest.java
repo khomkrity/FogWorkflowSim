@@ -72,7 +72,7 @@ class UserInputTest {
             assertEquals(cloudProcessingCost, hostCosts.get(cloudConstants.HOST_NAME).get(0));
             assertEquals(fogProcessingCost, hostCosts.get(fogDeviceConstants.HOST_NAME).get(0));
             assertEquals(mobileProcessingCost, hostCosts.get(endDeviceConstants.HOST_NAME).get(0));
-            assertEquals(portDelay, userInput.getPortDelay());
+            assertEquals(portDelay, UserInput.getPortDelay());
         }
 
         @Test

@@ -17,6 +17,8 @@ import org.workflowsim.WorkflowPlanner;
 import org.workflowsim.utils.Parameters;
 import org.workflowsim.utils.ReplicaCatalog;
 
+import java.util.Scanner;
+
 public class MainSimulation {
     private static final CloudSimConstants cloudSimConstants = CloudSimConstants.DEFAULT;
     private static final WorkflowEngineConstants workflowEngineConstants = WorkflowEngineConstants.DEFAULT;
@@ -32,25 +34,28 @@ public class MainSimulation {
         System.out.println("Starting the Simulation...");
         try {
             UserInput userInput = new UserInput();
-            userInput.readSimulationInput(inputPath);
+            userInput.readSimulationInput(new Scanner(System.in));
+            userInput.readDagPaths(inputPath);
             HostEnvironment hostEnvironment = new HostEnvironment(userInput);
             for (String dagPath : userInput.getDagPaths()) {
                 for (String algorithmName : userInput.getAlgorithmNames()) {
                     startSimulation(userInput, hostEnvironment, dagPath, algorithmName);
                 }
             }
-            SimulationOutputPrinter simulationOutputPrinter = new SimulationOutputPrinter(userInput.getPortDelay(),
+            SimulationOutputPrinter simulationOutputPrinter = new SimulationOutputPrinter(UserInput.getPortDelay(),
                     hostEnvironment.getVirtualMachines(),
                     schedulingResult.getSchedulingResultsByAlgorithmsEachDag());
             simulationOutputPrinter.printSchedulingResults();
-            simulationOutputPrinter.exportSchedulingResult();
+         //   simulationOutputPrinter.exportSchedulingResult();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private static void startSimulation(UserInput userInput, HostEnvironment hostEnvironment, String dagPath, String algorithmName) throws Exception {
-        CloudSim.init(cloudSimConstants.NUMBER_OF_USER, cloudSimConstants.CALENDAR_INSTANCE, cloudSimConstants.TRACE_FLAG);
+        CloudSim.init(cloudSimConstants.NUMBER_OF_USER,
+                cloudSimConstants.CALENDAR_INSTANCE,
+                cloudSimConstants.TRACE_FLAG);
         hostEnvironment.createComputingDevices(workflowEngineConstants.WORKFLOW_ENGINE_ID);
         Parameters.init(hostEnvironment.getNumberOfVirtualMachine(), dagPath,
                 parameterConstants.RUNTIME,
@@ -63,24 +68,20 @@ public class MainSimulation {
                 parameterConstants.REDUCER_MODE,
                 parameterConstants.DEADLINE);
         ReplicaCatalog.init(replicaCatalogConstants.FILE_SYSTEM);
-
         WorkflowPlanner workflowPlanner = new WorkflowPlanner(workflowPlannerConstants.WORKFLOW_PLANNER_NAME,
                 workflowPlannerConstants.NUMBER_OF_SCHEDULER);
         WorkflowEngine workflowEngine = workflowPlanner.getWorkflowEngine();
         workflowEngine.getoffloadingEngine().setOffloadingStrategy(offloadingEngineConstants.OFFLOADING_STRATEGY);
         workflowEngine.submitVmList(hostEnvironment.getVirtualMachines(), workflowEngineConstants.SCHEDULER_ID);
-
         Controller controller = new Controller(controllerConstants.NAME, hostEnvironment.getFogDevices(), workflowEngine);
         for (FogDevice fogdevice : controller.getFogDevices()) {
             workflowEngine.bindSchedulerDatacenter(fogdevice.getId(), workflowEngineConstants.SCHEDULER_ID);
         }
-
         CloudSim.startSimulation();
         CloudSim.stopSimulation();
-
         schedulingResult.addResult(userInput.getDagName(dagPath),
                 algorithmName,
-                userInput.getPortDelay(),
+                UserInput.getPortDelay(),
                 workflowEngine.getJobsReceivedList(),
                 FogBroker.getJobSubmissionOrders());
         Log.enable();

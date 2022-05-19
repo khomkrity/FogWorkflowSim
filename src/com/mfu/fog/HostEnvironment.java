@@ -20,7 +20,7 @@ class HostEnvironment {
     private final UserInput userInput;
     private final List<FogDevice> fogDevices;
     private final List<? extends Host> hosts;
-    private final List<CondorVM> virtualMachines;
+    private static List<CondorVM> virtualMachines;
     private int numberOfVirtualMachine;
 
     HostEnvironment(UserInput userInput) {
@@ -207,6 +207,19 @@ class HostEnvironment {
         for (FogDevice device : fogDevices) {
             numberOfVirtualMachine = getNumberOfVirtualMachine() + device.getHostList().size();
         }
+    }
+
+    /**
+     * Calculates the average available bandwidth among all VMs in Megabit/second
+     *
+     * @return Average available bandwidth in Megabit/second
+     */
+    public static double getAverageBandwidth() {
+        double averageBandwidth = 0.0;
+        for (CondorVM virtualMachine : virtualMachines) {
+            averageBandwidth += virtualMachine.getBw();
+        }
+        return averageBandwidth / virtualMachines.size();
     }
 
     public List<FogDevice> getFogDevices() {
