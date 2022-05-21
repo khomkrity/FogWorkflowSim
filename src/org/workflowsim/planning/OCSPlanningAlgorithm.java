@@ -1,13 +1,10 @@
 package org.workflowsim.planning;
 
-import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Log;
-import org.workflowsim.CondorVM;
-import org.workflowsim.Event;
-import org.workflowsim.Task;
-import org.workflowsim.TaskRank;
+import org.workflowsim.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
 
@@ -20,7 +17,7 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
     private double averageBandwidth;
 
     private List<List<Task>> paths;
-    private List<Pair<List<Task>, Double>> pairs = new ArrayList<>();
+    private List<TaskPath> pathCosts;
     private List<Task> criticalPath;
     private final Set<Double> eventTimes;
     private Set<Task> scheduledTasks;
@@ -32,6 +29,7 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         earliestFinishTimes = new LinkedHashMap<>();
         schedules = new LinkedHashMap<>();
         paths = new ArrayList<>();
+        pathCosts = new ArrayList<>();
         criticalPath = new ArrayList<>();
         eventTimes = new HashSet<>();
         scheduledTasks = new HashSet<>();
@@ -52,10 +50,11 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         calculateTransferCosts();
         //calculateRanks();
         paths = findAllPaths();
-        System.out.println("all path: " + paths);
-        criticalPath = findCriticalPath(paths);
+        pathCosts = calculatePathCost(paths);
+        Collections.sort(pathCosts);
+        System.out.println("path cost: " + pathCosts);
         System.out.println("critical path: " + criticalPath);
-        calculateSchedulingTime(criticalPath);
+        calculateSchedulingTime(pathCosts);
         for (Task task : getTaskList()) {
             System.out.println("id: " + task + " start: " + task.getEstimatedStartTime() + " finish: " + task.getEstimatedFinishTime());
         }
@@ -126,9 +125,8 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         return path;
     }
 
-    private List<Task> findCriticalPath(List<List<Task>> paths) {
-        List<Task> criticalPath = new ArrayList<>();
-        double maxCost = 0;
+    private List<TaskPath> calculatePathCost(List<List<Task>> paths) {
+        List<TaskPath> pathCosts = new ArrayList<>();
         for (List<Task> path : paths) {
             double cost = 0;
             for (int i = 0; i < path.size() - 1; i++) {
@@ -142,25 +140,26 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
                     cost += childCost;
                 }
             }
-            if (cost > maxCost) {
-                criticalPath = path;
-                maxCost = cost;
-            }
+            pathCosts.add(new TaskPath(path, cost));
         }
-        return criticalPath;
+        return pathCosts;
     }
 
     private double getAverageComputationCost(Collection<Double> costs) {
         return costs.stream().mapToDouble(Double::doubleValue).sum() / costs.size();
     }
 
-    private void calculateSchedulingTime(List<Task> criticalPath) {
-        for (Task task : criticalPath) {
-            List<Task> parents = task.getParentList().stream().filter(parent -> !parent.isEstimated()).toList();
-            if (parents.isEmpty()) {
-                estimateSchedulingTime(task, true);
+    private void calculateSchedulingTime(List<TaskPath> pathCosts) {
+        // TODO: create an arraylist to keep track of the scheduling order
+        for (TaskPath pathCost : pathCosts) {
+            List<Task> path = pathCost.getPath();
+            for (Task task : path) {
+                List<Task> parents = task.getParentList().stream().filter(parent -> !parent.isEstimated()).toList();
+                if (parents.isEmpty() && !task.isEstimated()) {
+                    estimateSchedulingTime(task, true);
+                }
+                findAncestors(task);
             }
-            findAncestors(task);
         }
     }
 
@@ -169,25 +168,49 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         List<Task> parentSiblings = task.getParentList()
                 .stream()
                 .filter(sibling -> !sibling.isEstimated())
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
         List<Task> siblings = task.getChildList().size() == 1 ? task.getChildList().get(0).getParentList()
                 .stream()
                 .filter(sibling -> !sibling.isEstimated() && !criticalPath.contains(sibling))
-                .toList()
+                .collect(Collectors.toCollection(ArrayList::new))
                 : new ArrayList<>();
-        if (isReadyToFindTaskPermutation(parentSiblings)) {
+        if (isReadyToFindTaskPriority(parentSiblings)) {
             estimateTaskPermutationSchedulingTime(parentSiblings);
+            estimateTaskReIndexingSchedulingTime(parentSiblings);
         } else {
             // TODO: find ancestors based on lower path rank
             for (Task parent : task.getParentList()) {
                 findAncestors(parent);
             }
-            if (isReadyToFindTaskPermutation(siblings)) {
+            if (isReadyToFindTaskPriority(siblings)) {
                 estimateTaskPermutationSchedulingTime(siblings);
+                estimateTaskReIndexingSchedulingTime(siblings);
             } else {
                 estimateSchedulingTime(task, true);
             }
         }
+    }
+
+    private void estimateTaskReIndexingSchedulingTime(List<Task> siblings) {
+        List<List<Task>> reIndexTasks = findReIndexedTasks(siblings);
+        // TODO: find scheduling time of each re-index tasks by including its child node
+        // TODO: set final estimation to the combination that has the lowest makespan (finish time)
+        System.out.println(reIndexTasks);
+    }
+
+    private List<List<Task>> findReIndexedTasks(List<Task> siblings) {
+        Comparator<Task> byLength = (Task task1, Task task2) -> Long.compare(task2.getCloudletTotalLength(), task1.getCloudletTotalLength());
+        siblings.sort(byLength);
+        List<List<Task>> reIndexedTasks = new ArrayList<>();
+        for (int i = 0; i < siblings.size(); i++) {
+            List<Task> reIndexed = new ArrayList<>(List.of(siblings.get(i)));
+            for (int j = 0; j < siblings.size(); j++) {
+                if (i == j) continue;
+                reIndexed.add(siblings.get(j));
+            }
+            reIndexedTasks.add(reIndexed);
+        }
+        return reIndexedTasks;
     }
 
     private void estimateTaskPermutationSchedulingTime(List<Task> siblings) {
@@ -208,12 +231,9 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         for (Task task : minTaskArrangement) {
             estimateSchedulingTime(task, true);
         }
-        System.out.println("total permutation: " + taskPermutation.size());
-        System.out.println("all arrangement: " + taskPermutation);
-        System.out.println("shortest arrangement: " + minTaskArrangement);
     }
 
-    private boolean isReadyToFindTaskPermutation(List<Task> tasks) {
+    private boolean isReadyToFindTaskPriority(List<Task> tasks) {
         if (tasks.size() <= 1) return false;
         for (Task task : tasks) {
             for (Task parent : task.getParentList()) {
@@ -263,7 +283,6 @@ public class OCSPlanningAlgorithm extends BasePlanningAlgorithm {
         }
         task.setEstimatedStartTime(startTime);
         task.setEstimatedFinishTime(finishTime);
-//        scheduledTasks.add(task);
     }
 
     /**
